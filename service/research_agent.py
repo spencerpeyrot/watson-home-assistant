@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from contracts.models import SourceRef, UsageMeasurement
 from service.search import SearchAnswer
 from service.usage_context import report_usage
+from voice.observability import Observation, current_observation
 
 
 REPORT_PATH = "/workspace/research-report.md"
@@ -174,19 +175,97 @@ def _usage_from_messages(messages: Sequence[Any], search: _JobSearch) -> UsageMe
 
 
 class _AgentUsageCallback(AsyncCallbackHandler):
-    """Capture completed model responses before the agent has a final state."""
+    """Capture model/tool boundaries and usage before the agent has a final state."""
 
-    def __init__(self, messages: list[Any], on_update: Callable[[], None]) -> None:
+    def __init__(self, messages: list[Any], on_update: Callable[[], None], parent: Observation) -> None:
         self.messages = messages
         self.on_update = on_update
+        self.parent = parent
+        self.spans: dict[UUID, Observation] = {}
 
-    async def on_llm_end(self, response: LLMResult, **_kwargs: Any) -> None:
+    def _parent(self, run_id: UUID | None) -> Observation:
+        return self.spans.get(run_id, self.parent) if run_id else self.parent
+
+    async def on_chat_model_start(
+        self, serialized: dict[str, Any], messages: list[list[Any]], *, run_id: UUID,
+        parent_run_id: UUID | None = None, metadata: dict[str, Any] | None = None, **_kwargs: Any,
+    ) -> None:
+        model_kwargs = serialized.get("kwargs", {}) if isinstance(serialized, dict) else {}
+        model = model_kwargs.get("model") or model_kwargs.get("model_name")
+        span = self._parent(parent_run_id).child(
+            "model.invoke", as_type="generation", model=model if isinstance(model, str) else "unknown",
+        )
+        span.io(input=messages)
+        self.spans[run_id] = span
+
+    async def on_llm_start(
+        self, serialized: dict[str, Any], prompts: list[str], *, run_id: UUID,
+        parent_run_id: UUID | None = None, **_kwargs: Any,
+    ) -> None:
+        model_kwargs = serialized.get("kwargs", {}) if isinstance(serialized, dict) else {}
+        model = model_kwargs.get("model") or model_kwargs.get("model_name")
+        span = self._parent(parent_run_id).child(
+            "model.invoke", as_type="generation", model=model if isinstance(model, str) else "unknown",
+        )
+        span.io(input=prompts)
+        self.spans[run_id] = span
+
+    async def on_llm_end(
+        self, response: LLMResult, *, run_id: UUID, **_kwargs: Any,
+    ) -> None:
+        span = self.spans.pop(run_id, None)
+        output = []
         for batch in response.generations:
             for generation in batch:
                 message = getattr(generation, "message", None)
                 if getattr(message, "type", None) == "ai":
                     self.messages.append(message)
+                output.append(getattr(generation, "text", ""))
+        if span is not None:
+            span.io(output=output)
+            latest = next((getattr(g, "message", None) for batch in response.generations
+                           for g in batch if getattr(g, "message", None) is not None), None)
+            usage = getattr(latest, "usage_metadata", None)
+            if isinstance(usage, dict):
+                counts = {key: usage[key] for key in ("input_tokens", "output_tokens", "total_tokens")
+                          if isinstance(usage.get(key), int)}
+                span.usage(counts)
+            span.update(status="succeeded")
+            span.end()
         self.on_update()
+
+    async def on_llm_error(
+        self, error: BaseException, *, run_id: UUID, **_kwargs: Any,
+    ) -> None:
+        span = self.spans.pop(run_id, None)
+        if span is not None:
+            span.update(status="failed", error_type=type(error).__name__,
+                        error_category="model_failure")
+            span.end()
+
+    async def on_tool_start(
+        self, serialized: dict[str, Any], input_str: str, *, run_id: UUID,
+        parent_run_id: UUID | None = None, **_kwargs: Any,
+    ) -> None:
+        tool_name = serialized.get("name", "unknown") if isinstance(serialized, dict) else "unknown"
+        name = "research.search" if tool_name == "web_search" else "research.tool"
+        span = self._parent(parent_run_id).child(name, as_type="tool", tool_name=tool_name)
+        span.io(input=input_str)
+        self.spans[run_id] = span
+
+    async def on_tool_end(self, output: Any, *, run_id: UUID, **_kwargs: Any) -> None:
+        span = self.spans.pop(run_id, None)
+        if span is not None:
+            span.io(output=output)
+            span.update(status="succeeded")
+            span.end()
+
+    async def on_tool_error(self, error: BaseException, *, run_id: UUID, **_kwargs: Any) -> None:
+        span = self.spans.pop(run_id, None)
+        if span is not None:
+            span.update(status="failed", error_type=type(error).__name__,
+                        error_category="tool_failure")
+            span.end()
 
 
 def _citation_key(value: str) -> tuple[str, str, int | None, str, str] | None:
@@ -283,7 +362,6 @@ class SolDeepAgent:
                 report_usage(measured_usage)
 
         job_search.on_usage_update = report_current_usage
-        usage_callback = _AgentUsageCallback(usage_messages, report_current_usage)
         search_tool = StructuredTool.from_function(
             name="web_search",
             description=(
@@ -353,27 +431,35 @@ class SolDeepAgent:
                 )
             )
         messages.append(HumanMessage(content=request_text, id=f"job-{job_id}-r{context_revision}"))
+        trace = current_observation()
         try:
-            state = await agent.ainvoke(
-                {
-                    "messages": messages,
-                    "files": {
-                        SKILL_PATH: {"content": self._skill_text, "encoding": "utf-8"},
-                        "/workspace/README.md": {
-                            "content": "Virtual per-job workspace. Save task deliverables here.",
-                            "encoding": "utf-8",
+            with trace.operation("research.agent", as_type="agent", job_id=job_id,
+                                 context_revision=context_revision) as agent_span:
+                agent_span.io(input=request_text)
+                usage_callback = _AgentUsageCallback(usage_messages, report_current_usage, agent_span)
+                state = await agent.ainvoke(
+                    {
+                        "messages": messages,
+                        "files": {
+                            SKILL_PATH: {"content": self._skill_text, "encoding": "utf-8"},
+                            "/workspace/README.md": {
+                                "content": "Virtual per-job workspace. Save task deliverables here.",
+                                "encoding": "utf-8",
+                            },
                         },
                     },
-                },
-                config={
-                    "configurable": {
-                        "thread_id": str(job_id),
-                        "checkpoint_ns": f"sol-r{context_revision}",
+                    config={
+                        "configurable": {
+                            "thread_id": str(job_id),
+                            "checkpoint_ns": f"sol-r{context_revision}",
+                        },
+                        "recursion_limit": 64,
+                        "callbacks": [usage_callback],
                     },
-                    "recursion_limit": 64,
-                    "callbacks": [usage_callback],
-                },
-            )
+                )
+                final_state_messages = state.get("messages", ())
+                agent_span.io(output=_message_text(final_state_messages[-1]) if final_state_messages else "")
+                agent_span.update(status="succeeded")
         except ResearchAgentError as error:
             measured_usage = _usage_from_messages(usage_messages, job_search)
             if measured_usage is not None:

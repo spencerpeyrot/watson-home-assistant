@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 from voice.observability import Observation, start_session
 from voice.audio_levels import PcmLevelMeter
 
@@ -382,32 +382,47 @@ class LocalVoiceRuntime:
     async def _start_session_locked(
         self, capture_preroll: tuple[BufferedAudioFrame, ...]
     ) -> UUID:
-        if self._continuous_capture:
-            capture = self._idle_capture
-            if capture is None:
-                raise RuntimeError("wake capture missing at session handoff")
-            capture.begin_session()
-            self._runtime.adopt_capture(capture)
-            self._session_capture = capture
-            self._idle_capture = None
-        else:
-            await self._close_idle_capture()
+        wake_started = asyncio.get_running_loop().time()
+        attempt_id = uuid4()
+        attempt_trace = start_session(attempt_id, "wake.attempt", attempt_id=attempt_id)
+        try:
+            if self._continuous_capture:
+                capture = self._idle_capture
+                if capture is None:
+                    raise RuntimeError("wake capture missing at session handoff")
+                capture.begin_session()
+                self._runtime.adopt_capture(capture)
+                self._session_capture = capture
+                self._idle_capture = None
+            else:
+                await self._close_idle_capture()
+        except BaseException as error:
+            attempt_trace.update(
+                status="cancelled" if isinstance(error, asyncio.CancelledError) else "failed",
+                failure_stage="capture_handoff", error_type=type(error).__name__,
+                error_category="capture_handoff_failed",
+                elapsed_ms=round((asyncio.get_running_loop().time() - wake_started) * 1000),
+            )
+            attempt_trace.end()
+            raise
         self._active_frames = 0
         self._turn_vad_speech_frames = 0
         self._awaiting_response = False
         self._speech_muted = None
         self._set_indicator_state(VoiceIndicatorState.LISTENING)
-        wake_started = asyncio.get_running_loop().time()
         self._input_levels = PcmLevelMeter()
         self._initial_request_created_at = wake_started
         wake_metadata = getattr(self._wake_detector, "last_detection_metadata", {})
         self._traced_playback = False
-        _LOGGER.info("wake detected; creating voice session")
+        _LOGGER.info("wake detected; creating voice session attempt_id=%s", attempt_id)
         if self._wake_acknowledgement is not None:
             try:
                 await self._wake_acknowledgement()
             except Exception as error:
-                _LOGGER.warning("wake acknowledgement failed (%s)", type(error).__name__)
+                attempt_trace.event("wake.ack_failed", status="failed",
+                                    error_type=type(error).__name__)
+                _LOGGER.warning("wake acknowledgement failed attempt_id=%s error_type=%s",
+                                attempt_id, type(error).__name__)
         self._reset_speech_detector()
         self._preroll_cutoff = max(
             (frame.captured_at for frame in capture_preroll), default=None
@@ -417,7 +432,9 @@ class LocalVoiceRuntime:
 
         async def on_session_created(response: SessionResponse) -> None:
             self._active_session_id = response.session_id
-            self._trace = start_session(response.session_id, "voice.device")
+            self._trace = start_session(response.session_id, "voice.device", attempt_id=attempt_id)
+            attempt_trace.update(status="succeeded", voice_session_id=response.session_id,
+                                 elapsed_ms=round((asyncio.get_running_loop().time() - wake_started) * 1000))
             if isinstance(self._active_callbacks, _ActivityCallbacks):
                 self._active_callbacks.set_trace(self._trace)
             self._trace.event("wake.detected", **wake_metadata)
@@ -475,13 +492,22 @@ class LocalVoiceRuntime:
             response = created.result()
             if response.session_id != self._active_session_id:
                 raise RuntimeError("created session identity changed")
+            attempt_trace.end()
             return response.session_id
-        except BaseException:
+        except BaseException as error:
+            outcome = "cancelled" if isinstance(error, asyncio.CancelledError) else "failed"
+            attempt_trace.update(status=outcome, failure_stage="session_create",
+                                 error_type=type(error).__name__,
+                                 error_category="timeout" if isinstance(error, TimeoutError) else "session_create_failed",
+                                 elapsed_ms=round((asyncio.get_running_loop().time() - wake_started) * 1000))
+            attempt_trace.end()
+            _LOGGER.warning("voice session creation failed attempt_id=%s failure_stage=session_create error_type=%s",
+                            attempt_id, type(error).__name__)
             if not task.done():
                 task.cancel()
             await asyncio.gather(task, return_exceptions=True)
             if self._active_task is task:
-                self._clear_active_session(task)
+                self._clear_active_session(task, status=outcome)
             await self._close_session_capture()
             raise
 
@@ -755,7 +781,9 @@ class LocalVoiceRuntime:
         if task.cancelled():
             if not intentional_cancel and not stop_event.is_set():
                 if self._controller.phase != "idle":
+                    self._clear_active_session(task, status="failed")
                     raise RuntimeError("voice session task was cancelled unexpectedly")
+            outcome = "cancelled" if stop_event.is_set() else "closed"
         else:
             error = task.exception()
             if error is not None:
@@ -763,10 +791,14 @@ class LocalVoiceRuntime:
                     _LOGGER.warning("voice relay failed: %s", error)
                 if self._controller.phase == "active":
                     await self._controller.close()
+                self._trace.update(status="failed", error_type=type(error).__name__,
+                                   error_category="voice_session_failed")
+                self._clear_active_session(task, status="failed")
                 raise error
             if self._controller.phase == "active":
                 await self._controller.close()
-        self._clear_active_session(task)
+            outcome = "closed"
+        self._clear_active_session(task, status=outcome)
 
     async def _play_active_wake_chime(self) -> None:
         assert self._wake_acknowledgement is not None
@@ -815,12 +847,12 @@ class LocalVoiceRuntime:
             await capture.close()
 
     def _clear_active_session(
-        self, task: asyncio.Task[SessionResponse] | None
+        self, task: asyncio.Task[SessionResponse] | None, *, status: str = "closed"
     ) -> None:
         if task is not None and self._active_task is not task:
             return
         self._active_task = None
-        self._trace.end(status="closed", frames=self._active_frames)
+        self._trace.end(status=status, frames=self._active_frames)
         self._trace = Observation()
         self._active_session_id = None
         self._active_callbacks = None

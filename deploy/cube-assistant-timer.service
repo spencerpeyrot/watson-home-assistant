@@ -11,6 +11,7 @@ User=cube
 SupplementaryGroups=audio
 WorkingDirectory=/opt/cube-assistant/current
 EnvironmentFile=/etc/cube-assistant/timer-client.env
+EnvironmentFile=-/etc/cube-assistant/langfuse.env
 ExecStart=/opt/cube-assistant/current/.venv/bin/python -m device.timer_client
 Restart=on-failure
 RestartSec=5s

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import unittest
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 from uuid import UUID
 
 from contracts.models import TimerFiredEvent
@@ -69,6 +71,28 @@ class FakeTimerStore:
 
 
 class TimerDeliveryWorkerTests(unittest.IsolatedAsyncioTestCase):
+    @staticmethod
+    def fake_trace():
+        class Trace:
+            def __init__(self):
+                self.updates = []
+                self.ended = None
+
+            def update(self, **values):
+                self.updates.append(values)
+
+            @contextmanager
+            def activate(self):
+                yield self
+
+            def end(self):
+                self.ended = self.updates[-1]["status"]
+
+            def event(self, *_args, **_kwargs):
+                pass
+
+        return Trace()
+
     async def test_success_acks_stable_deduplicable_event(self) -> None:
         store = FakeTimerStore(claimed_timer())
         received: list[TimerFiredEvent] = []
@@ -77,7 +101,11 @@ class TimerDeliveryWorkerTests(unittest.IsolatedAsyncioTestCase):
             received.append(event)
 
         worker = TimerDeliveryWorker(store=store, deliver=deliver, worker_id=WORKER_ID)
-        self.assertTrue(await worker.run_once())
+        trace = self.fake_trace()
+        with patch("service.timers.start_session", return_value=trace) as start_trace:
+            self.assertTrue(await worker.run_once())
+        self.assertEqual(start_trace.call_args.kwargs["delivery_attempt"], 1)
+        self.assertEqual(trace.ended, "succeeded")
         self.assertEqual(received[0].event_id, TIMER_ID)
         self.assertEqual(received[0].timer_id, TIMER_ID)
         self.assertEqual(store.acked, [(OWNER_ID, TIMER_ID, WORKER_ID)])
@@ -98,7 +126,10 @@ class TimerDeliveryWorkerTests(unittest.IsolatedAsyncioTestCase):
             max_attempts=3,
         )
         before = datetime.now(timezone.utc)
-        self.assertTrue(await worker.run_once())
+        trace = self.fake_trace()
+        with patch("service.timers.start_session", return_value=trace):
+            self.assertTrue(await worker.run_once())
+        self.assertEqual(trace.ended, "failed")
         after = datetime.now(timezone.utc)
         self.assertEqual(store.acked, [])
         self.assertEqual(len(store.retried), 1)
@@ -106,6 +137,27 @@ class TimerDeliveryWorkerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((timer_id, worker_id, max_attempts), (TIMER_ID, WORKER_ID, 3))
         self.assertGreaterEqual(retry_at, before)
         self.assertLessEqual(retry_at, after + timedelta(milliseconds=100))
+
+    async def test_stalled_delivery_times_out_and_retries(self) -> None:
+        store = FakeTimerStore(claimed_timer())
+
+        async def deliver(_event: TimerFiredEvent) -> None:
+            await asyncio.Event().wait()
+
+        worker = TimerDeliveryWorker(
+            store=store, deliver=deliver, worker_id=WORKER_ID,
+            delivery_timeout_seconds=0.001, retry_base_seconds=0.01,
+            retry_max_seconds=0.02,
+        )
+        trace = self.fake_trace()
+        with patch("service.timers.start_session", return_value=trace):
+            self.assertTrue(await worker.run_once())
+        self.assertEqual(trace.updates[-1]["status"], "timed_out")
+        self.assertEqual(trace.updates[-1]["failure_stage"], "delivery")
+        self.assertEqual(trace.updates[-1]["error_category"], "timeout")
+        self.assertEqual(trace.updates[-1]["timeout_ms"], 1)
+        self.assertEqual(len(store.retried), 1)
+        self.assertEqual(store.acked, [])
 
     async def test_empty_queue_returns_false(self) -> None:
         worker = TimerDeliveryWorker(

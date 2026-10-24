@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from uuid import uuid4
 
 from service.artifacts import ArtifactError, ArtifactStore
 from service.postgres import PostgresStore
+from voice.observability import start_session
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,18 +34,34 @@ class ArtifactCleanupWorker:
     async def run_once(self) -> int:
         """Clean one pending batch; retain tombstones when blob deletion fails."""
 
-        pending = await self._store.list_deleted_artifacts(limit=self._batch_size)
+        trace = start_session(uuid4(), "artifact.cleanup", batch_size=self._batch_size)
         cleaned = 0
-        for owner_id, artifact_id in pending:
-            try:
-                await self._artifact_store.delete(owner_id, artifact_id)
-            except ArtifactError:
-                continue
-            if await self._store.purge_deleted_artifact(
-                owner_id=owner_id, artifact_id=artifact_id
-            ):
-                cleaned += 1
-        return cleaned
+        try:
+            pending = await self._store.list_deleted_artifacts(limit=self._batch_size)
+            for owner_id, artifact_id in pending:
+                with trace.operation("artifact.delete", artifact_id=artifact_id) as span:
+                    try:
+                        await self._artifact_store.delete(owner_id, artifact_id)
+                    except ArtifactError as error:
+                        span.update(status="failed", failure_stage="delete_blob",
+                                    error_type=type(error).__name__, error_category="artifact_delete_failed")
+                        continue
+                    if await self._store.purge_deleted_artifact(
+                        owner_id=owner_id, artifact_id=artifact_id
+                    ):
+                        cleaned += 1
+                        span.update(status="succeeded")
+                    else:
+                        span.update(status="failed", failure_stage="purge_metadata",
+                                    error_category="artifact_metadata_not_purged")
+            trace.update(status="succeeded", cleanup_count=cleaned)
+            return cleaned
+        except Exception as error:
+            trace.update(status="failed", failure_stage="list_or_purge",
+                         error_type=type(error).__name__, error_category="artifact_cleanup_failed")
+            raise
+        finally:
+            trace.end()
 
     async def run(self, stop_event: asyncio.Event) -> None:
         """Poll until stopped; unresolved tombstones remain eligible on restart."""

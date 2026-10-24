@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from contextlib import asynccontextmanager
-from voice.observability import initialize as initialize_observability, shutdown as shutdown_observability
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Awaitable, Callable, Sequence
@@ -17,6 +17,11 @@ from fastapi import Depends, FastAPI, Header, Query, Request, Response, WebSocke
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from voice.observability import (
+    initialize as initialize_observability,
+    shutdown as shutdown_observability,
+    start_session,
+)
 
 from contracts.models import (
     ApiErrorResponse,
@@ -73,6 +78,7 @@ class DurableApiFailure(Exception):
 
 AuthDependency = Callable[..., Awaitable[AuthenticatedPrincipal]]
 DASHBOARD_ROOT = Path(__file__).resolve().parent.parent / "dashboard"
+_LOGGER = logging.getLogger(__name__)
 
 
 def create_durable_app(
@@ -130,6 +136,20 @@ def create_durable_app(
             background_tasks.append(
                 asyncio.create_task(service(stop), name=f"cube-background-service-{index}")
             )
+        app.state.background_tasks = background_tasks
+
+        def report_background_exit(task: asyncio.Task) -> None:
+            if stop.is_set():
+                return
+            try:
+                error = task.exception()
+            except asyncio.CancelledError:
+                error = None
+            _LOGGER.error("background service stopped unexpectedly task=%s error_type=%s",
+                          task.get_name(), type(error).__name__ if error else "none")
+
+        for task in background_tasks:
+            task.add_done_callback(report_background_exit)
         try:
             await asyncio.to_thread(initialize_observability, "gateway")
             yield
@@ -164,9 +184,41 @@ def create_durable_app(
     @app.middleware("http")
     async def trace_request(request: Request, call_next):
         request.state.trace_id = uuid.uuid4()
-        return await call_next(request)
+        route = getattr(request.scope.get("route"), "path", "unmatched")
+        trace = start_session(
+            request.state.trace_id, "gateway.request",
+            request_trace_id=request.state.trace_id, route=route,
+        )
+        request.state.observation = trace
+        started = asyncio.get_running_loop().time()
+        try:
+            with trace.activate():
+                response = await call_next(request)
+            route = getattr(request.scope.get("route"), "path", route)
+            status = response.status_code
+            trace.update(
+                status="failed" if status >= 500 else "rejected" if status >= 400 else "succeeded",
+                http_status=status,
+                route=route,
+                elapsed_ms=round((asyncio.get_running_loop().time() - started) * 1000),
+            )
+            return response
+        except BaseException as error:
+            trace.update(status="cancelled" if isinstance(error, asyncio.CancelledError) else "failed",
+                         error_type=type(error).__name__, error_category="request_failed",
+                         cause_type=type(error).__name__,
+                         http_status=None if isinstance(error, asyncio.CancelledError) else 500,
+                         route=getattr(request.scope.get("route"), "path", route),
+                         elapsed_ms=round((asyncio.get_running_loop().time() - started) * 1000))
+            raise
+        finally:
+            trace.end()
 
     def error_response(request: Request, status: int, code: str, message: str, retryable=False, details=None):
+        trace = getattr(request.state, "observation", None)
+        if trace is not None:
+            trace.update(status="failed" if status >= 500 else "rejected",
+                         error_code=code, failure_stage="api_response")
         envelope = ApiErrorResponse(
             trace_id=getattr(request.state, "trace_id", uuid.uuid4()),
             error={"code": code, "message": message, "retryable": retryable, "details": details},
@@ -622,13 +674,21 @@ def create_durable_app(
         require_role(principal, "operator")
         try:
             healthy = await store.healthcheck()
-        except Exception:
+        except Exception as error:
+            _LOGGER.warning("health dependency check failed dependency=postgres error_type=%s",
+                            type(error).__name__)
             healthy = False
+        background = {
+            task.get_name(): "healthy" if not task.done() else "unavailable"
+            for task in getattr(app.state, "background_tasks", ())
+        }
+        dependencies = {"postgres": "healthy" if healthy else "unavailable", **background}
         return HealthResponse(
-            status="healthy" if healthy else "unhealthy",
+            status=("unhealthy" if not healthy else
+                    "degraded" if any(value != "healthy" for value in background.values()) else "healthy"),
             service="cube-assistant-gateway",
             observed_at=datetime.now(timezone.utc),
-            dependencies={"postgres": "healthy" if healthy else "unavailable"},
+            dependencies=dependencies,
         )
 
     return app

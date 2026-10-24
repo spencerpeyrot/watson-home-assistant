@@ -267,6 +267,20 @@ class DurableApiTests(unittest.TestCase):
         self.assertEqual(response.json()["status"], "unhealthy")
         self.assertNotIn("database internals", response.text)
 
+    def test_operator_health_reports_stopped_background_service(self) -> None:
+        async def broken_service(_stop):
+            raise RuntimeError("private service detail")
+
+        client = TestClient(create_durable_app(
+            store=self.store, authenticate=authenticate,
+            background_services=(broken_service,),
+        ))
+        with client:
+            response = client.get("/v1/health", headers={"Authorization": "Bearer operator-test"})
+        self.assertEqual(response.json()["status"], "degraded")
+        self.assertEqual(response.json()["dependencies"]["cube-background-service-0"], "unavailable")
+        self.assertNotIn("private service detail", response.text)
+
     def test_operator_cannot_use_owner_routes(self) -> None:
         response = self.client.get(
             "/v1/timers", headers={"Authorization": "Bearer operator-test"}

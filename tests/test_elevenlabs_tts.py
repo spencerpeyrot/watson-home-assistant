@@ -96,6 +96,51 @@ class ElevenLabsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(audio, [b"\x00\x01" * 480])
         self.assertTrue(socket.closed)
 
+    async def test_sender_failure_is_not_hidden_while_receiver_waits(self):
+        class BrokenSenderSocket(FakeWebSocket):
+            async def send(self, raw: str) -> None:
+                raise OSError("socket closed")
+
+            async def recv(self) -> str:
+                await asyncio.Event().wait()
+
+        socket = BrokenSenderSocket()
+
+        async def connector(*_args, **_options):
+            return socket
+
+        async def texts():
+            yield "Hello"
+
+        tts = ElevenLabsTTS("secret", "voice", connector=connector)
+        with self.assertRaises(ElevenLabsError) as caught:
+            _ = [chunk async for chunk in tts.synthesize(texts())]
+        self.assertEqual(caught.exception.observability["failure_stage"], "connect_or_stream")
+        self.assertEqual(caught.exception.observability["cause_type"], "OSError")
+        self.assertTrue(socket.closed)
+
+    async def test_stalled_audio_stream_times_out_with_partial_output_status(self):
+        class HangingSocket(FakeWebSocket):
+            async def recv(self) -> str:
+                await asyncio.Event().wait()
+
+        socket = HangingSocket()
+
+        async def connector(*_args, **_options):
+            return socket
+
+        async def texts():
+            yield "Hello"
+
+        tts = ElevenLabsTTS("secret", "voice", connector=connector,
+                            stream_idle_timeout_seconds=0.001)
+        with self.assertRaises(ElevenLabsError) as caught:
+            _ = [chunk async for chunk in tts.synthesize(texts())]
+        self.assertEqual(caught.exception.observability["failure_stage"], "await_audio")
+        self.assertEqual(caught.exception.observability["timeout_ms"], 1)
+        self.assertFalse(caught.exception.observability["output_started"])
+        self.assertTrue(socket.closed)
+
 
 if __name__ == "__main__":
     unittest.main()
