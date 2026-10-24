@@ -12,7 +12,13 @@ from datetime import datetime, timezone
 from typing import Protocol
 from uuid import UUID
 
-from device.alsa import AlsaCapture, AlsaPlayback, AudioDeviceError, PcmFormat
+from device.alsa import (
+    DEFAULT_PLAYBACK_DRAIN_TIMEOUT_SECONDS,
+    AlsaCapture,
+    AlsaPlayback,
+    AudioDeviceError,
+    PcmFormat,
+)
 from device.audio_buffer import (
     AudioFrame,
     AudioFrameBuffer,
@@ -211,7 +217,16 @@ class PiAudioRuntime:
     async def drain_playback(self, *, reopen: bool = False) -> None:
         """Drain queued PCM through ALSA, optionally reopening for the next turn."""
 
-        await self._playback_drained.wait()
+        session_id = self._session_id
+        try:
+            async with asyncio.timeout(DEFAULT_PLAYBACK_DRAIN_TIMEOUT_SECONDS):
+                await self._playback_drained.wait()
+        except TimeoutError:
+            if session_id is not None:
+                await self._fail_session(session_id, "playback_drain", TimeoutError())
+            raise AudioDeviceError("playback queue drain timed out") from None
+        if self._failure is not None:
+            raise AudioDeviceError(self._failure)
         drain = getattr(self._playback, "drain_and_close", None)
         if drain is None:
             return
@@ -328,6 +343,7 @@ class PiAudioRuntime:
             return
         self._failure = f"{stream} stream failed ({type(error).__name__})"
         self._failure_event.set()
+        self._playback_drained.set()
         self._session_id = None
         self._last_playback_activity = None
         self._last_playback_level = 0.0

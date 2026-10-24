@@ -10,7 +10,7 @@ from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import WebSocketException
@@ -19,6 +19,7 @@ from contracts.models import LocalToolRequest, TimerEventAck, TimerFiredEvent, T
 from device.local_tools import LocalToolInbox, ToolExecutor, make_tool_result
 from device.reconnect import ReconnectSupervisor, RetryCallback
 from device.transport import DeviceTransportError
+from voice.observability import start_session
 
 
 TimerNotification = Callable[[TimerFiredEvent], Awaitable[None]]
@@ -76,7 +77,7 @@ class TimerEventInbox:
 
     async def present_once(
         self, event: TimerFiredEvent, notify: TimerNotification
-    ) -> None:
+    ) -> bool:
         """Run callback once after success; pending events retry after failure."""
 
         async with self._lock:
@@ -91,7 +92,7 @@ class TimerEventInbox:
                     (str(event.event_id),),
                 ).fetchone()
             if row is not None and row[0] == "delivered":
-                return
+                return False
 
             await notify(event)
 
@@ -101,6 +102,7 @@ class TimerEventInbox:
                     "updated_at = CURRENT_TIMESTAMP WHERE event_id = ?",
                     (str(event.event_id),),
                 )
+            return True
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
@@ -223,27 +225,68 @@ class TimerEventSocket:
 
         message = await self.receive()
         if isinstance(message, LocalToolRequest):
-            if (local_tool_inbox is None) != (execute_tool is None):
-                raise ValueError("local-tool inbox and executor must be supplied together")
-            if local_tool_inbox is None or execute_tool is None:
-                result = make_tool_result(
-                    message,
-                    status="denied",
-                    error_code="LOCAL_TOOL_NOT_CONFIGURED",
-                )
-            else:
-                result = await local_tool_inbox.execute_once(message, execute_tool)
-            await self.send_tool_result(result)
-            return result
+            trace = start_session(
+                uuid4(), "timer.receiver", action_id=message.action_id,
+                request_trace_id=message.trace_id, voice_session_id=message.session_id,
+                turn_id=message.turn_id, job_id=message.job_id,
+                delegation_id=message.delegation_id, tool_name=message.tool_name,
+            )
+        else:
+            trace = start_session(
+                uuid4(), "timer.receiver", event_id=message.event_id,
+                timer_id=message.timer_id, delivery_attempt=message.attempt_count,
+                delivery_delay_ms=max(0, round((message.fired_at - message.due_at).total_seconds() * 1000)),
+            )
+        trace.update(status="running")
+        stage = "execute"
         try:
-            await inbox.present_once(message, notify)
+            with trace.activate():
+                if isinstance(message, LocalToolRequest):
+                    if (local_tool_inbox is None) != (execute_tool is None):
+                        raise ValueError("local-tool inbox and executor must be supplied together")
+                    if local_tool_inbox is None or execute_tool is None:
+                        result = make_tool_result(
+                            message, status="denied", error_code="LOCAL_TOOL_NOT_CONFIGURED",
+                        )
+                    else:
+                        with trace.operation("device.local_tool", action_id=message.action_id,
+                                             tool_name=message.tool_name) as span:
+                            result = await local_tool_inbox.execute_once(message, execute_tool)
+                            span.update(
+                                status="failed" if result.status in {"failed", "needs_reconciliation"}
+                                else "rejected" if result.status == "denied" else "succeeded",
+                                tool_status=result.status, error_code=result.error_code,
+                                verified=result.verified, retryable=result.retryable,
+                            )
+                    stage = "send_tool_result"
+                    with trace.operation("device.tool_result_send", action_id=message.action_id):
+                        await self.send_tool_result(result)
+                    trace.update(
+                        status="failed" if result.status in {"failed", "needs_reconciliation"}
+                        else "rejected" if result.status == "denied" else "succeeded",
+                        stage="result_sent", tool_status=result.status,
+                        error_code=result.error_code, verified=result.verified,
+                    )
+                    return result
+                stage = "present"
+                with trace.operation("timer.present", event_id=message.event_id, timer_id=message.timer_id):
+                    presented = await inbox.present_once(message, notify)
+                stage = "acknowledge"
+                with trace.operation("timer.acknowledge", event_id=message.event_id):
+                    await self.acknowledge(message.event_id)
+                trace.update(status="succeeded", stage="acknowledged",
+                             reason="duplicate_event" if not presented else "presented")
         except asyncio.CancelledError:
+            trace.update(status="cancelled", failure_stage=stage, error_category="cancelled")
             raise
         except Exception as error:
+            trace.update(status="failed", failure_stage=stage, error_type=type(error).__name__,
+                         cause_type=type(error).__name__, error_category="device_event_failed")
             raise DeviceTransportError(
                 f"timer notification callback failed ({type(error).__name__})"
             ) from None
-        await self.acknowledge(message.event_id)
+        finally:
+            trace.end()
         return message
 
     async def close(self) -> None:
@@ -265,8 +308,13 @@ async def run_timer_event_client(
     """Keep event socket connected; reconnect after network or callback failure."""
 
     async def attempt() -> None:
-        socket = await TimerEventSocket.open(gateway_url, device_id, device_token)
+        trace = start_session(uuid4(), "timer.connection", component="timer-client")
+        trace.update(status="running")
+        socket = None
+        stage = "connect"
         try:
+            socket = await TimerEventSocket.open(gateway_url, device_id, device_token)
+            stage = "receive_event"
             while not stop_event.is_set():
                 receive = asyncio.create_task(
                     socket.process_next(
@@ -294,8 +342,22 @@ async def run_timer_event_client(
                         if not task.done():
                             task.cancel()
                     await asyncio.gather(receive, stopping, return_exceptions=True)
+            trace.update(status="succeeded")
+        except asyncio.CancelledError:
+            trace.update(status="cancelled", failure_stage=stage, error_category="cancelled")
+            raise
+        except Exception as error:
+            trace.update(status="failed", failure_stage=stage, error_type=type(error).__name__,
+                         cause_type=type(error).__name__, error_category="device_event_transport_failed")
+            raise
         finally:
-            await socket.close()
+            if socket is not None:
+                try:
+                    await socket.close()
+                except Exception as error:
+                    trace.event("timer.socket_close_failed", status="failed",
+                                error_type=type(error).__name__, error_category="cleanup_failed")
+            trace.end()
 
     supervisor = ReconnectSupervisor(attempt, on_retry=on_retry)
     running = asyncio.create_task(supervisor.run(), name="cube-timer-reconnect")

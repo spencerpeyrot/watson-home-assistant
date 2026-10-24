@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 from uuid import UUID
 
+from device.alsa import AudioDeviceError
 from device.audio_buffer import BufferedAudioFrame
 from device.audio_runtime import PiAudioRuntime
 
@@ -186,6 +188,21 @@ class PiAudioRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(queued)
         self.assertEqual(playback.drain_count, 1)
         self.assertEqual(started_count, 2)
+
+    async def test_playback_queue_drain_has_a_deadline(self) -> None:
+        runtime = PiAudioRuntime(
+            capture_pcm="unused-capture",
+            playback_pcm="unused-playback",
+            capture_stream=FakeCapture(bytes(960)),
+            playback_stream=FakePlayback(),
+        )
+        await runtime.start(SESSION)
+        runtime._playback_drained.clear()
+        with patch("device.audio_runtime.DEFAULT_PLAYBACK_DRAIN_TIMEOUT_SECONDS", 0.001):
+            with self.assertRaisesRegex(AudioDeviceError, "playback queue drain timed out"):
+                await runtime.drain_playback()
+        self.assertIsNone(runtime.session_id)
+        await runtime.stop()
 
     async def test_capture_preroll_is_first_audio_seen_by_provider_worker(self) -> None:
         capture = FakeCapture(bytes([3]) * 960)

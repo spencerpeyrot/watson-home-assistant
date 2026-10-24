@@ -49,6 +49,7 @@ class DurableJobWorker:
         trace = start_session(job.request.session_id, "job.lifecycle", job_id=job.job_id,
                               delegation_id=job.request.delegation_id, attempt=job.attempt_count)
         trace.io(input=job.request.request_text)
+        outcome = "running"
         try:
             interrupted_usage: list[UsageMeasurement] = []
             with trace.activate():
@@ -71,14 +72,17 @@ class DurableJobWorker:
                 result = await work
                 trace.io(output=result.response)
             except LeaseLost:
+                outcome = "abandoned"
                 trace.event("job.lease_lost", status="abandoned")
                 persist_abandoned_usage = True
                 return True
             except asyncio.CancelledError:
+                outcome = "cancelled"
                 trace.event("job.cancelled", status="cancelled")
                 persist_abandoned_usage = True
                 raise
             except Exception as error:
+                outcome = "failed"
                 trace.event("job.execution_failed", status="failed", error_type=type(error).__name__)
                 measured_usage = getattr(error, "measured_usage", None)
                 if not isinstance(measured_usage, UsageMeasurement):
@@ -145,11 +149,14 @@ class DurableJobWorker:
                     usage_provider="openai" if result.measured_usage is not None else None,
                 )
                 trace.event("job.result_persisted", status="succeeded", route=result.route)
+                outcome = "succeeded"
             except LeaseLost:
+                outcome = "abandoned"
                 # A stale worker must not publish a result after another worker reclaimed.
                 if artifact_ref is not None:
                     await self._discard_report(job, artifact_ref, registered=artifact_registered)
             except Exception as error:
+                outcome = "failed"
                 trace.event("job.publication_failed", status="failed", error_type=type(error).__name__)
                 if artifact_ref is not None:
                     await self._discard_report(job, artifact_ref, registered=artifact_registered)
@@ -172,7 +179,7 @@ class DurableJobWorker:
                     pass
             return True
         finally:
-            trace.end()
+            trace.end(status=outcome)
 
     async def _store_report(self, job: ClaimedJob, result: TaskGraphResult) -> ArtifactRef:
         if self._artifact_store is None:

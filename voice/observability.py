@@ -8,6 +8,7 @@ import os
 import hashlib
 import json
 import re
+import time
 from collections.abc import Awaitable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -17,10 +18,13 @@ from uuid import UUID
 _LOGGER = logging.getLogger(__name__)
 _client: Any = None
 _initialized = False
+_initialization_retry_at = 0.0
 _flush_tasks: set[asyncio.Task[Any]] = set()
 _forced_ids: ContextVar[tuple[int, int] | None] = ContextVar("cube_span_ids", default=None)
 _FIELDS = frozenset({
-    "session_id", "turn_id", "job_id", "delegation_id", "request_trace_id", "component",
+    "session_id", "voice_session_id", "turn_id", "job_id", "delegation_id",
+    "request_trace_id", "attempt_id", "component", "event_id", "timer_id",
+    "delivery_attempt", "delivery_delay_ms", "context_revision",
     "direction", "chars", "start_ms", "end_ms", "offset_ms", "accepted",
     "fragments", "reason", "error_type", "error_code", "status", "route",
     "kind", "frames", "capture_queued_ms", "capture_dropped",
@@ -34,6 +38,11 @@ _FIELDS = frozenset({
     "pcm_rms", "pcm_peak", "pcm_clipped_samples", "audio_bytes",
     "audio_duration_ms",
     "vad_speech_ms",
+    "failure_stage", "error_category", "provider_error_code", "http_status", "operation",
+    "websocket_close_code", "provider_request_id", "cause_type", "retryable",
+    "retry_after_ms", "output_started", "release", "environment", "timeout_ms",
+    "action_id", "tool_status", "verified",
+    "artifact_id", "batch_size", "cleanup_count",
 })
 _current: ContextVar[Observation | None] = ContextVar("cube_observation", default=None)
 
@@ -41,7 +50,12 @@ _LABELS = {
     "voice.device": "Watson conversation",
     "voice.bridge": "Understand request and deliver answer",
     "voice.gateway": "Live voice connection",
+    "gateway.request": "Handle API request",
     "job.lifecycle": "Background request",
+    "timer.delivery": "Deliver reminder",
+    "timer.receiver": "Present reminder on device",
+    "timer.connection": "Connect device event socket",
+    "gateway.admission": "Admit device voice connection",
     "job.worker": "Execute request",
     "job.graph": "Choose route and generate answer",
     "model.invoke": "Model response",
@@ -89,18 +103,20 @@ _LABELS = {
     "muse.wait": "Wait for Muse to answer",
     "speech.generate": "Turn Watson's reply into speech",
     "voice.turn.failed": "Voice turn failed",
+    "voice.turn": "Handle spoken request",
+    "research.agent": "Research and assemble answer",
+    "research.search": "Search web sources",
+    "wake.attempt": "Open a voice session",
+    "artifact.cleanup": "Clean deleted artifacts",
     "jev.fallback": "Use Luna decisions after Jev failed",
-    "speech.recognize": "Turn speech into text",
-    "voice.route": "Choose how Watson handles the request",
-    "muse.wait": "Wait for Muse to answer",
-    "speech.generate": "Turn Watson's reply into speech",
-    "voice.turn.failed": "Voice turn failed",
 }
 _EXPLANATIONS = {
     "voice.device": "Complete wake-to-close conversation. Input is recognized user speech; output is Watson speech.",
     "voice.bridge": "Assembles the spoken request, runs local lookups or submits background work, then delivers facts to Live.",
     "voice.gateway": "Maintains the live microphone/model/speaker connection and forwards transcripts and results.",
+    "gateway.request": "One HTTP request boundary; no request or response body is captured.",
     "job.lifecycle": "One claimed background request attempt, including execution and saving its result.",
+    "timer.delivery": "One timer notification delivery attempt, excluding the reminder text.",
     "job.graph": "Routes the request and runs model/tool calls needed to answer it.",
     "model.invoke": "One model call. Input shows messages; output shows generated text and tool calls.",
     "tool.invoke": "One tool call. Input shows arguments; output shows returned data.",
@@ -123,12 +139,10 @@ _EXPLANATIONS = {
     "muse.wait": "Time spent waiting for Muse text before speech playback.",
     "speech.generate": "ElevenLabs speech generation duration and safe failure type.",
     "voice.turn.failed": "Failed voice stage and sanitized error type; no provider payloads.",
+    "voice.turn": "One recognized voice turn from transcription through spoken reply.",
+    "research.agent": "One bounded research agent execution.",
+    "research.search": "One bounded external source search.",
     "jev.fallback": "Jev failed, so OpenAI Decisions handled this classification.",
-    "speech.recognize": "ElevenLabs transcription duration and safe failure type.",
-    "voice.route": "Jev routing duration; fallback use is recorded separately.",
-    "muse.wait": "Time spent waiting for Muse text before generating speech.",
-    "speech.generate": "ElevenLabs speech generation duration and safe failure type.",
-    "voice.turn.failed": "Failed voice stage and sanitized error type; no provider payloads.",
     "diagnostics": "Low-level measurements; expand when investigating timing, missing speech or audio loss.",
 }
 _DIAGNOSTICS = frozenset({
@@ -157,14 +171,17 @@ def _content(value: Any, depth: int = 0) -> Any:
     if depth > 5:
         return "[depth limit]"
     if isinstance(value, str):
-        text = value[:4000]
+        text = value
         for key, secret in os.environ.items():
             if any(part in key.upper() for part in ("KEY", "TOKEN", "SECRET", "PASSWORD")) and len(secret) >= 8:
                 text = text.replace(secret, "[redacted]")
         text = re.sub(r"(?i)(bearer\s+)[\w.\-/+=]+", r"\1[redacted]", text)
         text = re.sub(r"\b(?:sk|pk)-[A-Za-z0-9_-]{12,}", "[redacted]", text)
         text = re.sub(r"(?i)((?:api[_ -]?key|secret|password|token)\s*[:=]\s*)[^\s,;]+", r"\1[redacted]", text)
-        return text + (" [truncated]" if len(value) > 4000 else "")
+        marker = text.find("[redacted]", 4000 - len("[redacted]"))
+        if marker >= 4000 - len("[redacted]") and marker < 4000:
+            return text[:marker] + "[redacted] [truncated]"
+        return text[:4000] + (" [truncated]" if len(text) > 4000 else "")
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, dict):
@@ -185,25 +202,41 @@ def _bounded_content(value: Any) -> Any:
 
 
 def _metadata(values: dict[str, Any]) -> dict[str, str | int | float | bool]:
-    return {
-        key: str(value) if isinstance(value, UUID) else value
-        for key, value in values.items()
-        if key in _FIELDS and isinstance(value, (str, int, float, bool, UUID))
-        and (not isinstance(value, str) or len(value) <= 160)
+    safe = {}
+    for key, value in values.items():
+        if key not in _FIELDS or not isinstance(value, (str, int, float, bool, UUID)):
+            continue
+        if isinstance(value, str):
+            value = _content(value)
+            if len(value) > 160:
+                value = value[:160] + " [truncated]"
+        safe[key] = str(value) if isinstance(value, UUID) else value
+    return safe
+
+
+def _exception_metadata(error: BaseException) -> dict[str, Any]:
+    fields = getattr(error, "observability", None)
+    return {"error_type": type(error).__name__, **fields} if isinstance(fields, dict) else {
+        "error_type": type(error).__name__,
+        "error_category": "timeout" if isinstance(error, TimeoutError) else "unknown",
+        "cause_type": type(error.__cause__).__name__ if error.__cause__ else type(error).__name__,
     }
 
 
 def _get_client() -> Any:
-    global _client, _initialized
+    global _client, _initialized, _initialization_retry_at
     if _initialized:
         return _client
-    _initialized = True
     if os.environ.get("CUBE_LANGFUSE_ENABLED", "false").lower() != "true":
+        _initialized = True
         return None
     if not all(os.environ.get(key) for key in (
         "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL",
     )):
+        _initialized = True
         _LOGGER.warning("Langfuse disabled: project keys/base URL missing")
+        return None
+    if time.monotonic() < _initialization_retry_at:
         return None
     try:
         from langfuse import Langfuse
@@ -225,7 +258,10 @@ def _get_client() -> Any:
             tracer_provider=TracerProvider(id_generator=SessionIdGenerator()),
         )
     except Exception as error:
+        _initialization_retry_at = time.monotonic() + 30
         _LOGGER.warning("Langfuse initialization failed (%s)", type(error).__name__)
+    else:
+        _initialized = True
     return _client
 
 
@@ -239,7 +275,7 @@ async def _flush_after_session(client: Any, component: str, session_id: UUID) ->
         )
     else:
         _LOGGER.info(
-            "Langfuse session flush completed component=%s session_id=%s",
+            "Langfuse session flush returned; ingestion not verified component=%s session_id=%s",
             component, session_id,
         )
 
@@ -268,14 +304,19 @@ class Observation:
         self._transcript: list[dict[str, str]] = []
         self._diagnostics: Observation | None = None
 
+    @property
+    def status(self) -> str | None:
+        return self._metadata.get("status")
+
     def update(self, **metadata: Any) -> None:
         if self._raw is None:
             return
         try:
             self._metadata.update(_metadata(metadata))
-            level = "ERROR" if self._metadata.get("status") == "failed" else (
-                "WARNING" if self._metadata.get("status") in {"expired", "abandoned"} else "DEFAULT")
-            self._raw.update(metadata=self._metadata, level=level)
+            level = "ERROR" if self._metadata.get("status") in {"failed", "timed_out"} else (
+                "WARNING" if self._metadata.get("status") in {"expired", "abandoned", "cancelled", "rejected"} else "DEFAULT")
+            self._raw.update(metadata=self._metadata, level=level,
+                              status_message=self._metadata.get("error_type") if level != "DEFAULT" else None)
         except Exception as error:
             _LOGGER.warning(
                 "Langfuse observation update failed stage=%s session_id=%s error_type=%s",
@@ -293,10 +334,6 @@ class Observation:
             if output is not None:
                 data["output"] = _bounded_content(output)
             self._raw.update(**data)
-            if self._metadata.get("component") == "voice.device":
-                from opentelemetry.trace import use_span
-                with use_span(self._raw._otel_span):
-                    _get_client().set_current_trace_io(**data)
         except Exception as error:
             _LOGGER.warning(
                 "Langfuse content update failed stage=%s session_id=%s error_type=%s",
@@ -332,8 +369,9 @@ class Observation:
                    and isinstance(value, int) and not isinstance(value, bool) and value >= 0}
         try:
             self._raw.update(usage_details=details)
-        except Exception:
-            pass
+        except Exception as error:
+            _LOGGER.warning("Langfuse usage update failed session_id=%s error_type=%s",
+                            self.session_id, type(error).__name__)
 
     def child(self, name: str, *, as_type: str = "span", **metadata: Any) -> Observation:
         if self._raw is None:
@@ -366,7 +404,7 @@ class Observation:
             return Observation(session_id=self.session_id)
 
     def event(self, name: str, **metadata: Any) -> None:
-        self.child(name, **metadata).end()
+        self.child(name).end(**metadata)
 
     def end(self, **metadata: Any) -> None:
         if self._diagnostics is not None:
@@ -386,7 +424,11 @@ class Observation:
                 type(error).__name__,
             )
         component = self._metadata.get("component")
-        if component in {"voice.device", "voice.gateway"} and self.session_id:
+        if component in {
+            "voice.device", "voice.gateway", "job.lifecycle", "gateway.admission",
+            "timer.delivery", "timer.receiver", "timer.connection", "wake.attempt",
+            "artifact.cleanup",
+        } and self.session_id:
             _schedule_session_flush(component, self.session_id)
 
     @contextmanager
@@ -396,7 +438,8 @@ class Observation:
         try:
             yield child
         except BaseException as error:
-            child.update(status="failed", error_type=type(error).__name__)
+            child.update(status="cancelled" if isinstance(error, asyncio.CancelledError) else "failed",
+                         **_exception_metadata(error))
             raise
         finally:
             _current.reset(token)
@@ -415,10 +458,15 @@ def start_session(session_id: UUID, component: str, **metadata: Any) -> Observat
         if parent is not None and parent.session_id == session_id and parent._raw is not None:
             result = parent.child(component, component=component, **metadata)
             return result
-        # One actual root on the device. Remote components attach to its stable
-        # ID through OTel context rather than SDK trace_context, which marks
-        # each component AS_ROOT and makes the UI display separate roots.
-        root = component == "voice.device"
+        # Work accepted without a live device parent needs its own durable root.
+        root = component in {
+            "voice.device", "gateway.request", "timer.delivery", "timer.receiver",
+            "timer.connection", "wake.attempt", "artifact.cleanup",
+        }
+        if component in {"job.lifecycle", "job.worker"} and not (
+            parent is not None and parent.session_id == session_id and parent._raw is not None
+        ):
+            root = True
         ctx = context.Context()
         if not root:
             remote = trace.NonRecordingSpan(trace.SpanContext(
@@ -437,12 +485,17 @@ def start_session(session_id: UUID, component: str, **metadata: Any) -> Observat
         finally:
             _forced_ids.reset(ids_token)
             context.detach(ctx_token)
-        if component in {"voice.device", "voice.gateway"}:
+        if component in {"voice.device", "voice.gateway", "gateway.admission"}:
             _LOGGER.info(
                 "Langfuse session observation started component=%s session_id=%s",
                 component, session_id,
             )
-        return Observation(raw, session_id=session_id, metadata={"component": component, **metadata})
+        return Observation(raw, session_id=session_id, metadata={
+            "component": component,
+            "release": os.environ.get("LANGFUSE_RELEASE", "unknown"),
+            "environment": os.environ.get("LANGFUSE_TRACING_ENVIRONMENT", "unknown"),
+            **metadata,
+        })
     except Exception as error:
         _LOGGER.warning(
             "Langfuse session observation creation failed component=%s session_id=%s error_type=%s",
@@ -464,11 +517,13 @@ def initialize(component: str) -> None:
     try:
         span = client.start_observation(
             name="cube.observability.startup",
-            metadata={"component": component, "status": "configured"},
+            metadata=_metadata({"component": component, "status": "configured",
+                                "release": os.environ.get("LANGFUSE_RELEASE", "unknown"),
+                                "environment": os.environ.get("LANGFUSE_TRACING_ENVIRONMENT", "unknown")}),
         )
         span.end()
         client.flush()
-        _LOGGER.info("Langfuse startup observation flushed component=%s", component)
+        _LOGGER.info("Langfuse startup observation batch drained component=%s", component)
     except Exception as error:
         _LOGGER.warning("Langfuse startup observation failed (%s)", type(error).__name__)
 

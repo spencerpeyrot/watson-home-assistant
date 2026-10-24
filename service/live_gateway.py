@@ -77,9 +77,19 @@ async def serve_voice_session(
 ) -> None:
     """Authenticate, claim, relay, and close one device voice session."""
 
+    admission = start_session(session_id, "gateway.admission")
+    admission_started = asyncio.get_running_loop().time()
+
+    def finish_admission(**metadata: Any) -> None:
+        admission.update(elapsed_ms=round((asyncio.get_running_loop().time() - admission_started) * 1000),
+                         **metadata)
+        admission.end()
+
     try:
         principal = await authenticate(websocket)
-    except Exception:
+    except Exception as error:
+        finish_admission(status="rejected", failure_stage="authenticate",
+                         error_type=type(error).__name__, error_category="authentication_failed")
         await websocket.close(code=1008, reason="authentication rejected")
         return
 
@@ -92,6 +102,8 @@ async def serve_voice_session(
         or not principal_device.strip()
         or principal_device != device_id
     ):
+        finish_admission(status="rejected", failure_stage="device_scope",
+                         error_category="device_scope_rejected")
         await websocket.close(code=1008, reason="device scope rejected")
         return
 
@@ -99,16 +111,28 @@ async def serve_voice_session(
         session = await store.get_connecting_session_for_device(
             owner_id=owner_id, device_id=device_id, session_id=session_id
         )
-    except Exception:
+    except Exception as error:
+        finish_admission(status="failed", failure_stage="session_lookup",
+                         error_type=type(error).__name__, error_category="storage_unavailable")
         await websocket.close(code=1013, reason="session lookup unavailable")
         return
     if session is None:
+        finish_admission(status="rejected", failure_stage="session_lookup",
+                         error_category="session_scope_rejected")
         await websocket.close(code=1008, reason="session scope rejected")
         return
     if _remaining_session_seconds(session) == 0:
-        await store.close_session(
-            owner_id=owner_id, session_id=session_id, device_id=device_id
-        )
+        try:
+            await store.close_session(
+                owner_id=owner_id, session_id=session_id, device_id=device_id
+            )
+        except Exception as error:
+            finish_admission(status="failed", failure_stage="close_expired_session",
+                             error_type=type(error).__name__, error_category="storage_unavailable")
+            await websocket.close(code=1013, reason="session cleanup unavailable")
+            return
+        finish_admission(status="rejected", failure_stage="session_duration",
+                         error_category="session_limit_reached")
         await websocket.close(code=1008, reason="session duration limit reached")
         return
 
@@ -117,12 +141,17 @@ async def serve_voice_session(
         claimed_start = await store.claim_session_start(
             owner_id=owner_id, device_id=device_id, session_id=session_id
         )
-    except Exception:
+    except Exception as error:
+        finish_admission(status="failed", failure_stage="claim_session",
+                         error_type=type(error).__name__, error_category="storage_unavailable")
         await websocket.close(code=1013, reason="session claim unavailable")
         return
     if not claimed_start:
+        finish_admission(status="rejected", failure_stage="claim_session",
+                         error_category="session_already_claimed")
         await websocket.close(code=1008, reason="session already claimed")
         return
+    finish_admission(status="succeeded")
 
     provider: VoiceProvider | None = None
     provider_started = False
@@ -266,30 +295,44 @@ async def serve_voice_session(
             if provider_started:
                 try:
                     closed = await provider.close()
-                    if closed is not None:
-                        await persist_live_session_usage(
-                            store,
-                            owner_id=owner_id,
-                            session_id=session_id,
-                            closed=closed,
-                        )
                 except asyncio.CancelledError as error:
                     cancellation = error
                     try:
                         await provider.abort()
-                    except Exception:
-                        pass
-                except Exception:
-                    # Final usage stays absent unless the provider confirmed close.
+                    except Exception as abort_error:
+                        trace.event("voice.provider_abort_failed", status="failed",
+                                    failure_stage="abort", error_type=type(abort_error).__name__,
+                                    error_category="cleanup_failed")
+                except Exception as error:
+                    trace.event("voice.provider_close_failed", status="failed",
+                                failure_stage="provider_close", error_type=type(error).__name__,
+                                error_category="cleanup_failed")
                     try:
                         await provider.abort()
-                    except Exception:
-                        pass
+                    except Exception as abort_error:
+                        trace.event("voice.provider_abort_failed", status="failed",
+                                    failure_stage="abort", error_type=type(abort_error).__name__,
+                                    error_category="cleanup_failed")
+                else:
+                    if closed is not None:
+                        try:
+                            await persist_live_session_usage(
+                                store,
+                                owner_id=owner_id,
+                                session_id=session_id,
+                                closed=closed,
+                            )
+                        except Exception as error:
+                            trace.event("voice.usage_persist_failed", status="failed",
+                                        failure_stage="persist_usage", error_type=type(error).__name__,
+                                        error_category="storage_failed")
             else:
                 try:
                     await provider.abort()
-                except Exception:
-                    pass
+                except Exception as error:
+                    trace.event("voice.provider_abort_failed", status="failed",
+                                failure_stage="abort", error_type=type(error).__name__,
+                                error_category="cleanup_failed")
 
         try:
             await store.close_session(
@@ -297,9 +340,11 @@ async def serve_voice_session(
                 session_id=session_id,
                 device_id=device_id,
             )
-        except Exception:
+        except Exception as error:
             # Session teardown still closes the transport if persistence is unavailable.
-            pass
+            trace.event("voice.session_close_persist_failed", status="failed",
+                        failure_stage="close_session", error_type=type(error).__name__,
+                        error_category="storage_failed")
 
         if websocket.application_state == WebSocketState.CONNECTED:
             await _try_send_control(
@@ -308,8 +353,10 @@ async def serve_voice_session(
             )
             try:
                 await websocket.close(code=1000)
-            except Exception:
-                pass
+            except Exception as error:
+                trace.event("voice.websocket_close_failed", status="failed",
+                            failure_stage="websocket_close", error_type=type(error).__name__,
+                            error_category="transport_failed")
         trace.event(
             "voice.session_closed",
             reason=close_reason,

@@ -720,6 +720,7 @@ class TaskGraph:
         trace = start_session(request.session_id, "job.worker", job_id=job_id,
                               delegation_id=request.delegation_id, request_trace_id=request.trace_id)
         trace.io(input=request.request_text)
+        outcome = "running"
         try:
             with trace.operation("job.graph") as graph_span:
                 graph_span.io(input=request.request_text)
@@ -730,9 +731,18 @@ class TaskGraph:
                 graph_span.update(status="succeeded", route=result.route)
                 graph_span.io(output=result.response)
                 trace.io(output=result.response)
+                outcome = "succeeded"
                 return result
+        except asyncio.CancelledError:
+            outcome = "cancelled"
+            raise
+        except Exception as error:
+            outcome = "failed"
+            trace.update(status="failed", error_type=type(error).__name__,
+                         error_category="job_graph_failed")
+            raise
         finally:
-            trace.end()
+            trace.end(status=outcome)
 
     async def _run_untraced(
         self,
@@ -754,7 +764,17 @@ class TaskGraph:
         }
         if owner_id is not None:
             state["owner_id"] = str(owner_id)
-        callback_token = set_usage_reporter(on_partial_usage)
+        last_reported_usage: UsageMeasurement | None = None
+
+        def report_partial_usage(measurement: UsageMeasurement) -> None:
+            nonlocal last_reported_usage
+            if measurement != last_reported_usage and on_partial_usage is not None:
+                last_reported_usage = measurement
+                on_partial_usage(measurement)
+
+        callback_token = set_usage_reporter(
+            report_partial_usage if on_partial_usage is not None else None
+        )
         try:
             state = await self._graph.ainvoke(
                 state,

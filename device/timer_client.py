@@ -23,6 +23,10 @@ from device.timer_events import TimerEventInbox, run_timer_event_client, timer_e
 from device.reconnect import RetryNotice
 from device.timer_tts import OpenAITimerSpeech, SUPPORTED_VOICES, make_timer_notifier
 from service.home_assistant import HomeAssistantClient
+from voice.observability import (
+    initialize as initialize_observability,
+    shutdown as shutdown_observability,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -127,10 +131,11 @@ async def run(settings: TimerClientSettings) -> None:
             loop.add_signal_handler(signal_number, stop_event.set)
         except (NotImplementedError, RuntimeError):
             continue
-    inbox = TimerEventInbox(settings.data_dir / "timer-events.sqlite3")
     tts_client: httpx.AsyncClient | None = None
     home_assistant: HomeAssistantClient | None = None
     try:
+        await asyncio.to_thread(initialize_observability, "timer-client")
+        inbox = TimerEventInbox(settings.data_dir / "timer-events.sqlite3")
         if settings.openai_api_key:
             tts_client = httpx.AsyncClient(timeout=httpx.Timeout(45.0, connect=5.0))
         else:
@@ -187,6 +192,7 @@ async def run(settings: TimerClientSettings) -> None:
             await tts_client.aclose()
         if home_assistant is not None:
             await home_assistant.close()
+        await shutdown_observability()
 
 
 def _report_retry(notice: RetryNotice) -> None:

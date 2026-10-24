@@ -413,7 +413,7 @@ class MuseProviderTests(unittest.IsolatedAsyncioTestCase):
                 FakeHost(link), speech, recognizer, conversation_registry=registry,
                 conversation_key="owner:conversation",
             )
-            self.assertIsNone(provider._turn_timeout)
+            self.assertEqual(provider._turn_timeout, 180.0)
 
             self.assertEqual(await provider.start(), "muse-gadget-session")
             pcm = b"\x01\x00" * 960

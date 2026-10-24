@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import asyncio
 import json
 import unittest
 
@@ -89,6 +90,27 @@ class ElevenLabsSTTTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ElevenLabsSTTError, "rejected transcription") as caught:
             await recognizer.transcribe(b"\x00\x00")
         self.assertNotIn("private detail", str(caught.exception))
+        self.assertTrue(socket.closed)
+        self.assertEqual(caught.exception.observability["error_category"], "rate_limit")
+        self.assertEqual(caught.exception.observability["failure_stage"], "provider_response")
+
+    async def test_committed_transcript_timeout_has_stage_metadata(self):
+        class HangingSocket(FakeWebSocket):
+            async def recv(self):
+                if not self.sent:
+                    return json.dumps({"message_type": "session_started"})
+                await asyncio.Event().wait()
+
+        socket = HangingSocket()
+
+        async def connector(*_args, **_kwargs):
+            return socket
+
+        recognizer = ElevenLabsSTT("secret", connector=connector)
+        recognizer.TRANSCRIPT_TIMEOUT_SECONDS = 0.001
+        with self.assertRaises(ElevenLabsSTTError) as caught:
+            await recognizer.transcribe(b"\x00\x00")
+        self.assertEqual(caught.exception.observability["failure_stage"], "await_transcript")
         self.assertTrue(socket.closed)
 
 

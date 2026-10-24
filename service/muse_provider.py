@@ -186,7 +186,7 @@ class MuseElevenProvider:
         *,
         turn_factory: Callable[..., Any] | None = None,
         startup_timeout_seconds: float = 20,
-        turn_timeout_seconds: float | None = None,
+        turn_timeout_seconds: float | None = 180.0,
         conversation_registry: MuseConversationRegistry | None = None,
         conversation_key: str | None = None,
         internal_turn_handler: InternalTurnHandler | None = None,
@@ -303,6 +303,13 @@ class MuseElevenProvider:
         await self.close()
 
     async def _run_turn(self, turn_id: UUID, pcm: bytes, vad_speech_ms: int) -> None:
+        with current_observation().operation("voice.turn", turn_id=turn_id) as turn:
+            turn.update(status="running")
+            await self._run_turn_body(turn_id, pcm, vad_speech_ms)
+            if turn.status == "running":
+                turn.update(status="succeeded")
+
+    async def _run_turn_body(self, turn_id: UUID, pcm: bytes, vad_speech_ms: int) -> None:
         stage = "prepare"
         raw_events: asyncio.Queue[dict[str, Any] | BaseException] = asyncio.Queue(
             maxsize=MAX_PENDING_MUSE_EVENTS
@@ -330,7 +337,8 @@ class MuseElevenProvider:
 
         async def relay_speech(chunks: AsyncIterator[str] | None = None) -> None:
             trace = current_observation()
-            with trace.operation("speech.generate", provider="elevenlabs", turn_id=turn_id):
+            with trace.operation("speech.generate", provider="elevenlabs",
+                                 model=getattr(self._speech, "model", None), turn_id=turn_id):
                 async for audio in self._speech.synthesize(chunks or text_chunks()):
                     if not audio or len(audio) % 2:
                         raise LiveProviderError("ElevenLabs returned invalid PCM16 audio")
@@ -364,7 +372,8 @@ class MuseElevenProvider:
                 trace = current_observation()
                 stage = "speech_recognize"
                 stt_started = time.monotonic()
-                with trace.operation("speech.recognize", provider="elevenlabs", turn_id=turn_id):
+                with trace.operation("speech.recognize", provider="elevenlabs",
+                                     model=getattr(self._recognizer, "model", None), turn_id=turn_id):
                     transcript = await self._recognizer.transcribe(pcm)
                 stage = "transcript_clean"
                 transcript = _clean_transcript(transcript)
@@ -714,6 +723,7 @@ class MuseElevenProvider:
                 expectation=expectation or "unknown",
                 elapsed_ms=round((time.monotonic() - turn_started) * 1000),
             )
+            trace.update(status="succeeded", elapsed_ms=round((time.monotonic() - turn_started) * 1000))
             _LOGGER.info(
                 "voice reply ready session_id=%s turn_id=%s reply_chars=%d expectation=%s elapsed_ms=%d",
                 trace.session_id, turn_id, len(reply_text), expectation or "unknown",
@@ -723,8 +733,17 @@ class MuseElevenProvider:
             raise
         except Exception as error:
             trace = current_observation()
+            elapsed_ms = round((time.monotonic() - turn_started) * 1000)
+            timeout_ms = round(self._turn_timeout * 1000) if isinstance(error, TimeoutError) and self._turn_timeout is not None else None
             trace.event("voice.turn.failed", status="failed", stage=stage,
-                        error_type=type(error).__name__)
+                        error_type=type(error).__name__, turn_id=turn_id, elapsed_ms=elapsed_ms,
+                        failure_stage=stage, error_category=(
+                            "timeout" if isinstance(error, TimeoutError) else "provider_failure"
+                        ), timeout_ms=timeout_ms)
+            trace.update(status="failed", failure_stage=stage, turn_id=turn_id,
+                         elapsed_ms=elapsed_ms, timeout_ms=timeout_ms, **{
+                key: value for key, value in getattr(error, "observability", {}).items()
+            })
             if "muse_wait_span" in locals():
                 muse_wait_span.update(status="failed", error_type=type(error).__name__)
                 muse_wait_span.end()
