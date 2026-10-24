@@ -1,0 +1,8 @@
+{
+  "type": "voice_audio_turn_end",
+  "schema_version": 1,
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "turn_id": "00000000-0000-4000-8000-000000000002",
+  "last_audio_sequence": 41,
+  "vad_speech_ms": 760
+}

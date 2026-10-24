@@ -1,0 +1,28 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/MemoryUpdateRequest.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "content": {
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_turn_id": {
+      "format": "uuid",
+      "title": "Source Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "content",
+    "source_turn_id"
+  ],
+  "title": "MemoryUpdateRequest",
+  "type": "object"
+}

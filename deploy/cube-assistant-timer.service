@@ -1,0 +1,35 @@
+[Unit]
+Description=Watson Home Assistant device events (timers and local tools)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=cube
+SupplementaryGroups=audio
+WorkingDirectory=/opt/cube-assistant/current
+EnvironmentFile=/etc/cube-assistant/timer-client.env
+ExecStart=/opt/cube-assistant/current/.venv/bin/python -m device.timer_client
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=15s
+UMask=0077
+StateDirectory=cube-assistant-timer
+StateDirectoryMode=0700
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

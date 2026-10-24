@@ -1,0 +1,183 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/VoiceSessionEvent.schema.json",
+  "additionalProperties": false,
+  "description": "Provider-neutral control event for one authenticated voice session.",
+  "properties": {
+    "code": {
+      "anyOf": [
+        {
+          "enum": [
+            "INVALID_REQUEST",
+            "DEPENDENCY_UNAVAILABLE",
+            "DEPENDENCY_TIMEOUT",
+            "INTERNAL_ERROR"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Code"
+    },
+    "delegation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delegation Id"
+    },
+    "delta": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delta"
+    },
+    "direction": {
+      "anyOf": [
+        {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Direction"
+    },
+    "end_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "End Ms"
+    },
+    "half_duplex": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Half Duplex"
+    },
+    "offset_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Offset Ms"
+    },
+    "reply_expectation": {
+      "anyOf": [
+        {
+          "enum": [
+            "none",
+            "open_answer",
+            "confirmation",
+            "closing"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reply Expectation"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "start_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Start Ms"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "enum": [
+            "client",
+            "responses",
+            "server"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target"
+    },
+    "type": {
+      "enum": [
+        "session_ready",
+        "transcript_delta",
+        "assistant_processing",
+        "assistant_response_started",
+        "assistant_response_complete",
+        "assistant_turn_ignored",
+        "delegation_created",
+        "session_error",
+        "session_closed"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "session_id"
+  ],
+  "title": "VoiceSessionEvent",
+  "type": "object"
+}

@@ -1,0 +1,39 @@
+[Unit]
+Description=Watson Home Assistant durable job worker
+Wants=network-online.target
+After=network-online.target cube-assistant-api.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=cube-assistant
+Group=cube-assistant
+WorkingDirectory=/opt/cube-assistant/current
+EnvironmentFile=/etc/cube-assistant/worker.env
+EnvironmentFile=-/etc/cube-assistant/langfuse.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/cube-assistant/current/.venv/bin/python -m service.worker
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=60s
+UMask=0077
+StateDirectory=cube-assistant
+StateDirectoryMode=0750
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

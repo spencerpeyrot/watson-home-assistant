@@ -1,0 +1,50 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/HealthResponse.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "dependencies": {
+      "additionalProperties": {
+        "enum": [
+          "healthy",
+          "degraded",
+          "unavailable"
+        ],
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "object"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "service": {
+      "minLength": 1,
+      "title": "Service",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "healthy",
+        "degraded",
+        "unhealthy"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "service",
+    "observed_at"
+  ],
+  "title": "HealthResponse",
+  "type": "object"
+}

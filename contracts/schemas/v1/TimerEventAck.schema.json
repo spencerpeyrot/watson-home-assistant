@@ -1,0 +1,23 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/TimerEventAck.schema.json",
+  "additionalProperties": false,
+  "description": "Device acknowledgement after it accepts a timer notification.",
+  "properties": {
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "event_id"
+  ],
+  "title": "TimerEventAck",
+  "type": "object"
+}

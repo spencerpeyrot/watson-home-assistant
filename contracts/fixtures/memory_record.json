@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "memory_id": "00000000-0000-4000-8000-000000000010",
+  "category": "preference",
+  "content": "Prefers concise spoken answers.",
+  "source_turn_id": "00000000-0000-4000-8000-000000000003",
+  "created_at": "2026-10-06T12:01:00Z",
+  "updated_at": "2026-10-06T12:01:00Z"
+}

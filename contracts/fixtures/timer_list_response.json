@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "timers": [
+    {
+      "schema_version": 1,
+      "timer_id": "d0000000-0000-4000-8000-000000000001",
+      "conversation_id": "c0000000-0000-4000-8000-000000000001",
+      "due_at": "2026-10-06T12:05:00Z",
+      "message": "Tea is ready.",
+      "status": "scheduled",
+      "created_at": "2026-10-06T12:00:00Z",
+      "delivered_at": null
+    }
+  ]
+}

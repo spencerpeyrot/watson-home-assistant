@@ -1,0 +1,45 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/VoiceContextAppend.schema.json",
+  "additionalProperties": false,
+  "description": "Bounded device-to-gateway context update for a known delegation.",
+  "properties": {
+    "content": {
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "delegation_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Delegation Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "commentary",
+        "thinking"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "delegation_id",
+    "kind",
+    "content"
+  ],
+  "title": "VoiceContextAppend",
+  "type": "object"
+}

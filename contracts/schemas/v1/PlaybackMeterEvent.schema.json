@@ -1,0 +1,52 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/PlaybackMeterEvent.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "device_id": {
+      "minLength": 1,
+      "title": "Device Id",
+      "type": "string"
+    },
+    "peak_level": {
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Peak Level",
+      "type": "string"
+    },
+    "played_at": {
+      "format": "date-time",
+      "title": "Played At",
+      "type": "string"
+    },
+    "rms_level": {
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Rms Level",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "device_id",
+    "session_id",
+    "sequence",
+    "played_at",
+    "rms_level",
+    "peak_level"
+  ],
+  "title": "PlaybackMeterEvent",
+  "type": "object"
+}

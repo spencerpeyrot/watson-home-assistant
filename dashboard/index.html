@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Cube Assistant</title>
+    <link rel="stylesheet" href="/dashboard/assets/style.css">
+    <script defer src="/dashboard/assets/app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Cube Assistant</p>
+          <h1>Household console</h1>
+        </div>
+        <div class="top-actions">
+          <span id="connection-state" class="state-pill">Disconnected</span>
+          <button id="refresh-button" class="button secondary" type="button" disabled>Refresh</button>
+        </div>
+      </header>
+
+      <section class="panel auth-panel" aria-labelledby="access-title">
+        <div>
+          <p class="eyebrow">Owner access</p>
+          <h2 id="access-title">Connect to gateway</h2>
+          <p class="muted">Token stays in this page's memory. Dashboard makes same-origin API calls.</p>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <label class="sr-only" for="owner-token">Owner bearer token</label>
+          <input id="owner-token" name="token" type="password" autocomplete="off" spellcheck="false" placeholder="Owner bearer token" required>
+          <button class="button primary" type="submit">Connect</button>
+          <button id="disconnect-button" class="button secondary" type="button" disabled>Disconnect</button>
+        </form>
+        <p id="status-message" class="status-message" role="status" aria-live="polite">Enter owner token to load data.</p>
+        <div id="job-notifications" class="job-notifications" role="log" aria-live="polite" aria-relevant="additions"></div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Usage summary">
+        <article class="metric-card"><span>Input tokens</span><strong id="input-tokens">—</strong></article>
+        <article class="metric-card"><span>Output tokens</span><strong id="output-tokens">—</strong></article>
+        <article class="metric-card"><span>Elapsed seconds</span><strong id="connected-seconds">—</strong><small>Includes gateway session proxy</small></article>
+        <article class="metric-card"><span>Measured cost</span><strong id="measured-cost">—</strong></article>
+        <article class="metric-card"><span>Estimated cost</span><strong id="estimated-cost">—</strong></article>
+      </section>
+
+      <div class="content-grid">
+        <section class="panel" aria-labelledby="sessions-title">
+          <div class="section-heading"><div><p class="eyebrow">Device</p><h2 id="sessions-title">Recent sessions</h2></div><span id="session-count" class="count">0</span></div>
+          <div id="sessions-content" class="table-wrap"><p class="empty-state">Connect to load sessions.</p></div>
+          <div id="session-policy" class="muted small"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="jobs-title">
+          <div class="section-heading"><div><p class="eyebrow">Work</p><h2 id="jobs-title">Recent jobs</h2></div><span id="job-count" class="count">0</span></div>
+          <div id="jobs-content" class="stack"><p class="empty-state">Connect to load jobs.</p></div>
+        </section>
+
+        <section class="panel approvals-panel" aria-labelledby="approvals-title">
+          <div class="section-heading"><div><p class="eyebrow">Review</p><h2 id="approvals-title">Approvals</h2></div><span id="approval-count" class="count">0</span></div>
+          <div id="approvals-content" class="stack"><p class="empty-state">Connect to load approvals.</p></div>
+        </section>
+
+        <section class="panel" aria-labelledby="memories-title">
+          <div class="section-heading"><div><p class="eyebrow">Personalization</p><h2 id="memories-title">Saved memories</h2></div><span id="memory-count" class="count">0</span></div>
+          <div id="memories-content" class="stack"><p class="empty-state">Connect to load memories.</p></div>
+        </section>
+
+        <section class="panel" aria-labelledby="usage-title">
+          <div class="section-heading"><div><p class="eyebrow">Accounting</p><h2 id="usage-title">Recent usage</h2></div><span id="usage-period" class="muted small"></span></div>
+          <div id="usage-content" class="table-wrap"><p class="empty-state">Connect to load usage.</p></div>
+        </section>
+      </div>
+      <footer class="footer">Usage shows recorded measurements only. Application-side monthly/job budget limits are not configured; provider account limits are managed separately. Gateway elapsed time estimates session duration, not confirmed Live billing.</footer>
+    </main>
+  </body>
+</html>

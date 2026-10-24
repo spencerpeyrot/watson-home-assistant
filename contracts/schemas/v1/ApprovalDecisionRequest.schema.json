@@ -1,0 +1,37 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/ApprovalDecisionRequest.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "context_revision": {
+      "minimum": 0,
+      "title": "Context Revision",
+      "type": "integer"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "deny"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "payload_digest": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Payload Digest",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision",
+    "payload_digest",
+    "context_revision"
+  ],
+  "title": "ApprovalDecisionRequest",
+  "type": "object"
+}

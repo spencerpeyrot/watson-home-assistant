@@ -1,0 +1,37 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/MemoryWriteRequest.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "enum": [
+        "preference",
+        "fact"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "content": {
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_turn_id": {
+      "format": "uuid",
+      "title": "Source Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "content",
+    "source_turn_id"
+  ],
+  "title": "MemoryWriteRequest",
+  "type": "object"
+}

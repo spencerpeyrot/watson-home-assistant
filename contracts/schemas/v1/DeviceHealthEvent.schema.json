@@ -1,0 +1,78 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/DeviceHealthEvent.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "audio_ready": {
+      "title": "Audio Ready",
+      "type": "boolean"
+    },
+    "device_id": {
+      "minLength": 1,
+      "title": "Device Id",
+      "type": "string"
+    },
+    "muted": {
+      "title": "Muted",
+      "type": "boolean"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "playback_state": {
+      "enum": [
+        "stopped",
+        "buffering",
+        "playing"
+      ],
+      "title": "Playback State",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_state": {
+      "enum": [
+        "idle",
+        "connecting",
+        "active",
+        "closing"
+      ],
+      "title": "Session State",
+      "type": "string"
+    },
+    "temperature_c": {
+      "anyOf": [
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temperature C"
+    },
+    "trace_id": {
+      "format": "uuid",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "device_id",
+    "trace_id",
+    "observed_at",
+    "audio_ready",
+    "session_state",
+    "muted",
+    "playback_state"
+  ],
+  "title": "DeviceHealthEvent",
+  "type": "object"
+}

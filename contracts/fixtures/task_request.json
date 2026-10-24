@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "device_id": "cube-01",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "session_id": "00000000-0000-4000-8000-000000000002",
+  "turn_id": "00000000-0000-4000-8000-000000000003",
+  "delegation_id": "live-delegation-42",
+  "trace_id": "00000000-0000-4000-8000-000000000004",
+  "request_text": "Turn on the living room lamp.",
+  "context_revision": 0,
+  "recent_turns": [],
+  "referenced_job_ids": [],
+  "locale": "en-US",
+  "timezone": "America/New_York",
+  "idempotency_key": "cube-01/00000000-0000-4000-8000-000000000002/live-delegation-42"
+}

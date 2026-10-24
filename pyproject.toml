@@ -1,0 +1,49 @@
+[project]
+name = "watson-home-assistant"
+version = "0.1.0"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[dependency-groups]
+common = [
+    "httpx>=0.27,<1",
+    "langfuse>=4,<5",
+    "pydantic>=2.10,<3",
+    "websockets>=15,<16",
+]
+device = [
+    { include-group = "common" },
+]
+wakeword = [
+    { include-group = "device" },
+    "openwakeword==0.6.0",
+    "scipy>=1.14,<2",
+    "webrtcvad-wheels==2.0.14.post1",
+]
+led = [
+    { include-group = "device" },
+    "Adafruit-Blinka>=8,<9",
+    "Adafruit-Blinka-Raspberry-Pi5-Neopixel==1.0.0rc2",
+    "adafruit-lgpio==0.2.2.0; sys_platform == 'linux' and python_version >= '3.13' and platform_machine == 'aarch64'",
+]
+server = [
+    { include-group = "common" },
+    "fastapi>=0.115,<1",
+    "langgraph>=1,<2",
+    "langgraph-checkpoint-postgres>=3,<4",
+    "langchain-openai>=1.6,<2",
+    "openai>=2,<3",
+    "psycopg[binary,pool]>=3.2,<4",
+    "uvicorn[standard]>=0.34,<1",
+    "deepagents>=0.7,<1",
+]
+muse = [
+    "musegadget @ git+https://github.com/facebookincubator/muse-gadget-sdk.git@8e613f77f3a95a63e70cf8be549db9e589105ea0#subdirectory=linux",
+]
+
+[tool.uv]
+package = false
+default-groups = ["server"]
+override-dependencies = [
+    { package = { name = "openwakeword", version = "0.6.0" }, dependencies = ["tflite-runtime; python_version < '3.12'"] },
+]

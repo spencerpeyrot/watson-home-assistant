@@ -1,0 +1,48 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/AudioTurnEnd.schema.json",
+  "additionalProperties": false,
+  "description": "Mark the final captured frame and VAD speech length for one input turn.",
+  "properties": {
+    "last_audio_sequence": {
+      "minimum": 0,
+      "title": "Last Audio Sequence",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "turn_id": {
+      "format": "uuid",
+      "title": "Turn Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "voice_audio_turn_end",
+      "default": "voice_audio_turn_end",
+      "title": "Type",
+      "type": "string"
+    },
+    "vad_speech_ms": {
+      "default": 0,
+      "maximum": 43700,
+      "minimum": 0,
+      "title": "Vad Speech Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "session_id",
+    "turn_id",
+    "last_audio_sequence"
+  ],
+  "title": "AudioTurnEnd",
+  "type": "object"
+}

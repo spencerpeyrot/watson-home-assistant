@@ -1,0 +1,55 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/MemoryRecord.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "enum": [
+        "preference",
+        "fact"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "content": {
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "memory_id": {
+      "format": "uuid",
+      "title": "Memory Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_turn_id": {
+      "format": "uuid",
+      "title": "Source Turn Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "memory_id",
+    "category",
+    "content",
+    "source_turn_id",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "MemoryRecord",
+  "type": "object"
+}

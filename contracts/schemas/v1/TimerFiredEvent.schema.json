@@ -1,0 +1,73 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/TimerFiredEvent.schema.json",
+  "additionalProperties": false,
+  "description": "Stable event ID makes timer notification delivery deduplicable.",
+  "properties": {
+    "attempt_count": {
+      "minimum": 1,
+      "title": "Attempt Count",
+      "type": "integer"
+    },
+    "conversation_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conversation Id"
+    },
+    "device_id": {
+      "minLength": 1,
+      "title": "Device Id",
+      "type": "string"
+    },
+    "due_at": {
+      "format": "date-time",
+      "title": "Due At",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "fired_at": {
+      "format": "date-time",
+      "title": "Fired At",
+      "type": "string"
+    },
+    "message": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "timer_id": {
+      "format": "uuid",
+      "title": "Timer Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "timer_id",
+    "device_id",
+    "due_at",
+    "fired_at",
+    "message",
+    "attempt_count"
+  ],
+  "title": "TimerFiredEvent",
+  "type": "object"
+}

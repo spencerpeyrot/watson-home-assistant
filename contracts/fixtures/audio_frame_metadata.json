@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "session_id": "00000000-0000-4000-8000-000000000002",
+  "sequence": 0,
+  "captured_at": "2026-10-06T12:00:00Z",
+  "encoding": "pcm_s16le",
+  "sample_rate_hz": 24000,
+  "channels": 1,
+  "frame_duration_ms": 20
+}

@@ -1,0 +1,6 @@
+{
+  "conversation_id": "c0000000-0000-4000-8000-000000000001",
+  "due_at": "2026-10-07T12:00:00Z",
+  "idempotency_key": "cube-01/session-01/timer-oven",
+  "message": "Check the oven"
+}

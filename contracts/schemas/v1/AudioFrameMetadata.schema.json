@@ -1,0 +1,58 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/AudioFrameMetadata.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "channels": {
+      "exclusiveMinimum": 0,
+      "title": "Channels",
+      "type": "integer"
+    },
+    "encoding": {
+      "const": "pcm_s16le",
+      "title": "Encoding",
+      "type": "string"
+    },
+    "frame_duration_ms": {
+      "exclusiveMinimum": 0,
+      "title": "Frame Duration Ms",
+      "type": "integer"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "sequence",
+    "captured_at",
+    "encoding",
+    "sample_rate_hz",
+    "channels",
+    "frame_duration_ms"
+  ],
+  "title": "AudioFrameMetadata",
+  "type": "object"
+}

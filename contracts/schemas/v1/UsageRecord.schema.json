@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "UsageMeasurement": {
+      "additionalProperties": false,
+      "description": "Measured or estimated usage; units explicit to avoid mixed totals.",
+      "properties": {
+        "connected_seconds": {
+          "anyOf": [
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Connected Seconds"
+        },
+        "cost_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "measured",
+                "estimated"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Kind"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Tokens"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Tokens"
+        }
+      },
+      "title": "UsageMeasurement",
+      "type": "object"
+    }
+  },
+  "$id": "https://cube-assistant.invalid/contracts/v1/UsageRecord.schema.json",
+  "additionalProperties": false,
+  "description": "One persisted provider measurement with ownership scope and timestamp.",
+  "properties": {
+    "job_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Job Id"
+    },
+    "measurement": {
+      "$ref": "#/$defs/UsageMeasurement"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "provider": {
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "usage_id": {
+      "format": "uuid",
+      "title": "Usage Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "usage_id",
+    "provider",
+    "measurement",
+    "observed_at"
+  ],
+  "title": "UsageRecord",
+  "type": "object"
+}

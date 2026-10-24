@@ -1,0 +1,29 @@
+name: Python and contract validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contracts:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+      - run: uv python install "${{ matrix.python-version }}"
+      - run: uv lock --check
+      - run: uv sync --locked --python "${{ matrix.python-version }}" --no-dev --group server
+      - run: uv run --locked --python "${{ matrix.python-version }}" python -m compileall -q contracts device service voice
+      - run: uv run --locked --python "${{ matrix.python-version }}" python -m contracts.validate_fixtures
+      - run: uv run --locked --python "${{ matrix.python-version }}" python -m unittest discover -s tests -v
+      - run: node --check dashboard/app.js
+      - run: node tests/test_dashboard_notifications.js

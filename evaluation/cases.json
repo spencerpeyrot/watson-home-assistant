@@ -1,0 +1,290 @@
+[
+  {
+    "case_id": "simple-arithmetic",
+    "request_text": "What is fourteen plus twenty-eight?",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "math"]
+  },
+  {
+    "case_id": "simple-explanation",
+    "request_text": "Explain why the moon appears to change shape.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "knowledge"]
+  },
+  {
+    "case_id": "simple-distance-conversion",
+    "request_text": "Convert 2.5 kilometers to miles.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "conversion"]
+  },
+  {
+    "case_id": "simple-temperature-conversion",
+    "request_text": "Convert 68 degrees Fahrenheit to Celsius.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "conversion"]
+  },
+  {
+    "case_id": "simple-clarify-message",
+    "request_text": "Make this message clearer without changing its meaning: I will arrive after lunch.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "rewrite"]
+  },
+  {
+    "case_id": "simple-grammar-fix",
+    "request_text": "Fix the grammar in this sentence: She don't like the noise.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "rewrite"]
+  },
+  {
+    "case_id": "simple-translation",
+    "request_text": "Translate 'good morning, have a nice day' into French.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "translation"]
+  },
+  {
+    "case_id": "simple-timer-create",
+    "request_text": "Set a timer for twelve minutes.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "timer", "tool"]
+  },
+  {
+    "case_id": "simple-reminder-create",
+    "request_text": "Remind me tomorrow at 9 AM to call Mom.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "reminder", "tool"]
+  },
+  {
+    "case_id": "simple-timer-cancel",
+    "request_text": "Cancel my twelve minute timer.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "timer", "tool"]
+  },
+  {
+    "case_id": "simple-light-on",
+    "request_text": "Turn on the desk lamp.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "home", "tool"]
+  },
+  {
+    "case_id": "simple-light-off",
+    "request_text": "Turn off the desk lamp.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "home", "tool"]
+  },
+  {
+    "case_id": "simple-light-state",
+    "request_text": "Is the desk lamp on?",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "home", "tool"]
+  },
+  {
+    "case_id": "simple-breathing-break",
+    "request_text": "Give me a short one minute breathing exercise.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "conversation"]
+  },
+  {
+    "case_id": "simple-word-definition",
+    "request_text": "What does 'serendipity' mean?",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "knowledge"]
+  },
+  {
+    "case_id": "simple-weather-current",
+    "request_text": "What's the weather in Boston today?",
+    "expected_route": "simple",
+    "requires_sources": true,
+    "requires_report": false,
+    "tags": ["simple", "weather", "search", "citations"]
+  },
+  {
+    "case_id": "simple-device-volume-up",
+    "request_text": "Turn the cube volume up.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "device", "control"]
+  },
+  {
+    "case_id": "simple-device-off",
+    "request_text": "Turn off the cube.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "device", "shutdown"]
+  },
+  {
+    "case_id": "simple-expense-sum",
+    "request_text": "Add these expenses: 12.50, 8.25, and 4.10 dollars.",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "math"]
+  },
+  {
+    "case_id": "simple-cooking-fact",
+    "request_text": "At what temperature does water freeze in Celsius?",
+    "expected_route": "simple",
+    "requires_sources": false,
+    "requires_report": false,
+    "tags": ["simple", "knowledge"]
+  },
+  {
+    "case_id": "current-factual-search",
+    "request_text": "Research current official documentation for Python asyncio task groups and cite your sources.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": false,
+    "tags": ["complex", "search", "citations"]
+  },
+  {
+    "case_id": "comparison-report",
+    "request_text": "Research and compare three open source speech recognition libraries. Save a cited report.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": true,
+    "tags": ["complex", "research", "comparison", "artifact"]
+  },
+  {
+    "case_id": "planning-report",
+    "request_text": "Plan a two day synthetic test schedule for audio capture, playback, and interruption, then draft a report.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "planning", "artifact"]
+  },
+  {
+    "case_id": "wake-options-review",
+    "request_text": "Research and compare three local wake-word detection options for a Raspberry Pi 5. Cite current documentation and save a short report.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": true,
+    "tags": ["complex", "research", "comparison", "wake", "artifact"]
+  },
+  {
+    "case_id": "official-j2-documentation",
+    "request_text": "Find sources in official Raspberry Pi documentation that explain the Pi 5 J2 power-button connector.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": false,
+    "tags": ["complex", "search", "hardware", "citations"]
+  },
+  {
+    "case_id": "audio-outage-analysis",
+    "request_text": "Analyze this synthetic audio-service log and write a report identifying a likely reconnect sequence: ALSA timeout; capture worker exits; reconnect attempt 1 succeeds.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "analysis", "recovery", "artifact"]
+  },
+  {
+    "case_id": "network-fault-plan",
+    "request_text": "Plan a network-loss and reconnect fault matrix for the device WebSocket and save the matrix.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "planning", "network", "artifact"]
+  },
+  {
+    "case_id": "vad-library-comparison",
+    "request_text": "Compare three VAD libraries for offline ARM64 use, cite current official documentation, and save a report.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": true,
+    "tags": ["complex", "research", "comparison", "audio", "artifact"]
+  },
+  {
+    "case_id": "restore-runbook-draft",
+    "request_text": "Draft a database and artifact restore runbook from the project operations notes.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "draft", "operations", "artifact"]
+  },
+  {
+    "case_id": "audio-retention-policy",
+    "request_text": "Find sources on audio-retention defaults and summarize a privacy-by-default policy in a report.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": true,
+    "tags": ["complex", "search", "privacy", "artifact"]
+  },
+  {
+    "case_id": "current-provider-pricing",
+    "request_text": "Research current OpenAI API model pricing from official documentation and cite the source.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": false,
+    "tags": ["complex", "search", "pricing", "citations"]
+  },
+  {
+    "case_id": "usage-sample-analysis",
+    "request_text": "Analyze these synthetic usage totals and save a report comparing measured and estimated cost: measured $1.20; estimated $0.80.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "analysis", "usage", "artifact"]
+  },
+  {
+    "case_id": "controlled-soak-plan",
+    "request_text": "Plan a 48-hour controlled soak with thermal, audio-drop, and reconnect observations, then save a report.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "planning", "performance", "artifact"]
+  },
+  {
+    "case_id": "transport-comparison",
+    "request_text": "Compare WebSocket and periodic polling for device job notifications, cite primary sources, and write a report.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": true,
+    "tags": ["complex", "comparison", "transport", "artifact"]
+  },
+  {
+    "case_id": "audio-service-conflicts",
+    "request_text": "Research current Raspberry Pi OS audio-service coexistence guidance and cite official sources.",
+    "expected_route": "complex",
+    "requires_sources": true,
+    "requires_report": false,
+    "tags": ["complex", "search", "hardware", "audio"]
+  },
+  {
+    "case_id": "supplied-options-summary",
+    "request_text": "Summarize these supplied design notes and draft a comparison report: Option A uses local VAD; Option B uses cloud VAD; Option C uses push-to-talk.",
+    "expected_route": "complex",
+    "requires_sources": false,
+    "requires_report": true,
+    "tags": ["complex", "summary", "comparison", "artifact"]
+  }
+]

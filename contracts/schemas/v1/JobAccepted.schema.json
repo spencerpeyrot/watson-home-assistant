@@ -1,0 +1,48 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/JobAccepted.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "deduplicated": {
+      "title": "Deduplicated",
+      "type": "boolean"
+    },
+    "first_event_sequence": {
+      "minimum": 1,
+      "title": "First Event Sequence",
+      "type": "integer"
+    },
+    "job_id": {
+      "format": "uuid",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "queued",
+        "running"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "trace_id": {
+      "format": "uuid",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "trace_id",
+    "deduplicated",
+    "first_event_sequence"
+  ],
+  "title": "JobAccepted",
+  "type": "object"
+}

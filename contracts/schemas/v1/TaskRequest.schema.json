@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "RecentTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "committed_at": {
+          "format": "date-time",
+          "title": "Committed At",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "turn_id": {
+          "format": "uuid",
+          "title": "Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "role",
+        "text",
+        "committed_at"
+      ],
+      "title": "RecentTurn",
+      "type": "object"
+    }
+  },
+  "$id": "https://cube-assistant.invalid/contracts/v1/TaskRequest.schema.json",
+  "additionalProperties": false,
+  "description": "Committed user task; owner identity comes from gateway authentication.",
+  "properties": {
+    "context_revision": {
+      "minimum": 0,
+      "title": "Context Revision",
+      "type": "integer"
+    },
+    "conversation_id": {
+      "format": "uuid",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "delegation_id": {
+      "minLength": 1,
+      "title": "Delegation Id",
+      "type": "string"
+    },
+    "device_id": {
+      "minLength": 1,
+      "title": "Device Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "locale": {
+      "minLength": 2,
+      "title": "Locale",
+      "type": "string"
+    },
+    "recent_turns": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RecentTurn"
+      },
+      "title": "Recent Turns",
+      "type": "array"
+    },
+    "referenced_job_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Referenced Job Ids",
+      "type": "array"
+    },
+    "request_text": {
+      "minLength": 1,
+      "title": "Request Text",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "timezone": {
+      "minLength": 1,
+      "title": "Timezone",
+      "type": "string"
+    },
+    "trace_id": {
+      "format": "uuid",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "turn_id": {
+      "format": "uuid",
+      "title": "Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "device_id",
+    "conversation_id",
+    "session_id",
+    "turn_id",
+    "delegation_id",
+    "trace_id",
+    "request_text",
+    "context_revision",
+    "locale",
+    "timezone",
+    "idempotency_key"
+  ],
+  "title": "TaskRequest",
+  "type": "object"
+}

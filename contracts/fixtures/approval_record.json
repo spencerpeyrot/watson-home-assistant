@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "approval_id": "00000000-0000-4000-8000-000000000009",
+  "action_id": "00000000-0000-4000-8000-000000000007",
+  "action_summary": "Send the approved message to the selected contact.",
+  "payload_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "context_revision": 0,
+  "status": "pending",
+  "expires_at": "2026-10-06T12:05:00Z"
+}

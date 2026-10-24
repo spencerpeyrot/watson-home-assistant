@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1540" viewBox="0 0 1800 1540" role="img" aria-labelledby="title desc">
+  <title id="title">Watson Home Assistant current system map</title>
+  <desc id="desc">Three separate paths: spoken conversations, background jobs, and timers.</desc>
+  <defs>
+    <style /></defs>
+
+  <rect width="1800" height="1540" fill="#f5f7fb" />
+  <text x="70" y="68" font-family="Arial, sans-serif" fill="#172033" font-size="42px" font-weight="750">Watson Home Assistant: current system map</text>
+  <text x="72" y="105" font-family="Arial, sans-serif" fill="#526176" font-size="20px">Hey Watson wakes locally; Jev routes; Muse answers; ElevenLabs speaks.</text>
+
+
+  <rect x="50" y="135" width="1700" height="720" fill="#ffffff" stroke="#d9e0e9" stroke-width="2" rx="26" />
+  <text x="85" y="185" font-family="Arial, sans-serif" fill="#172033" font-size="26px" font-weight="700">1. When you talk to Cube</text>
+  <text x="85" y="215" font-family="Arial, sans-serif" fill="#526176" font-size="17px">Cube listens, turns your speech into text, chooses a path, then speaks the result.</text>
+
+  <rect x="80" y="265" width="255" height="125" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="207" y="310" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">You speak</text>
+  <text x="207" y="344" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Ask a question or give</text>
+  <text x="207" y="369" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">a command</text>
+
+  <rect x="405" y="265" width="255" height="125" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="532" y="310" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Cube Pi hears you</text>
+  <text x="532" y="344" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Wake word starts mic;</text>
+  <text x="532" y="369" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Cube detects when you stop</text>
+
+  <rect x="730" y="265" width="255" height="125" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="857" y="310" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Voice API</text>
+  <text x="857" y="344" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="16px">Receives audio and records</text>
+  <text x="857" y="369" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="16px">VAD speech time and levels</text>
+
+  <rect x="1055" y="265" width="255" height="125" stroke-width="2.5" rx="18" fill="#fff1e2" stroke="#e29a46" />
+  <text x="1182" y="310" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">ElevenLabs Scribe</text>
+  <text x="1182" y="344" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Turns your speech</text>
+  <text x="1182" y="369" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">into text</text>
+
+  <rect x="1380" y="265" width="255" height="125" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="1507" y="310" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Jev route, ack, reply</text>
+  <text x="1507" y="344" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="16px">Routes speech; picks a short cue</text>
+  <text x="1507" y="369" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="16px">Luna fallback; noise stays quiet</text>
+
+  <line x1="335.0" y1="327.0" x2="400.0" y2="327.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="660.0" y1="327.0" x2="725.0" y2="327.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="985.0" y1="327.0" x2="1050.0" y2="327.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1310.0" y1="327.0" x2="1375.0" y2="327.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><text x="575" y="420" font-family="Arial, sans-serif" fill="#526176" font-size="16px" font-weight="650">Conversation to Muse</text>
+  <text x="1195" y="420" font-family="Arial, sans-serif" fill="#526176" font-size="16px" font-weight="650">Local control to Pi</text>
+  <text x="1507" y="460" text-anchor="middle" font-family="Arial, sans-serif" fill="#526176" font-size="15px">Noise: preserve deadline · clear goodbye: close</text><line x1="1507.0" y1="390.0" x2="1507.0" y2="435.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1507.0" y1="435.0" x2="1225.0" y2="435.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1225.0" y1="435.0" x2="1225.0" y2="485.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1507.0" y1="435.0" x2="575.0" y2="435.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="575.0" y1="435.0" x2="575.0" y2="485.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><rect x="325" y="490" width="500" height="120" stroke-width="2.5" rx="18" fill="#fff1e2" stroke="#e29a46" />
+  <text x="575" y="535" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Muse writes a reply</text>
+  <text x="575" y="570" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Writes replies; greeting can bypass Muse</text>
+
+  <line x1="575.0" y1="610.0" x2="575.0" y2="650.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1225.0" y1="610.0" x2="1225.0" y2="650.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1225.0" y1="650.0" x2="835.0" y2="650.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="575.0" y1="650.0" x2="835.0" y2="650.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="835.0" y1="650.0" x2="835.0" y2="680.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1015.0" y1="737.0" x2="1090.0" y2="737.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><rect x="965" y="490" width="520" height="120" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="1225" y="535" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Cube Pi performs the command</text>
+  <text x="1225" y="570" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Volume or shutdown; API saves verified result</text>
+
+  <rect x="655" y="685" width="360" height="105" stroke-width="2.5" rx="18" fill="#fff1e2" stroke="#e29a46" />
+  <text x="835" y="728" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">ElevenLabs TTS</text>
+  <text x="835" y="760" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Starts after Muse sends first words</text>
+
+  <rect x="1095" y="685" width="360" height="105" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="1275" y="728" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Cube speaker plays reply</text>
+  <text x="1275" y="760" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Audio returns to the Cube Pi</text>
+
+
+  <text x="900" y="816" text-anchor="middle" font-family="Arial, sans-serif" fill="#526176" font-size="15px">Wake-only: brief greeting. Slow requests: Jev cue first; quick answers go straight to speech.</text>
+  <text x="900" y="840" text-anchor="middle" font-family="Arial, sans-serif" fill="#526176" font-size="14px">After reply: 3 s ordinary / 8 s yes-no / 10 s open question / 0.5 s goodbye. Empty transcription after invitation + 300 ms speech: repeat once.</text>
+  <rect x="50" y="885" width="1700" height="290" fill="#ffffff" stroke="#d9e0e9" stroke-width="2" rx="26" />
+  <text x="85" y="935" font-family="Arial, sans-serif" fill="#172033" font-size="26px" font-weight="700">2. Longer jobs (separate from voice replies)</text>
+  <text x="85" y="964" font-family="Arial, sans-serif" fill="#526176" font-size="17px">Research and other queued work run in a background worker; Muse voice does not hand work to this path today.</text>
+
+  <rect x="80" y="1000" width="270" height="115" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="215" y="1045" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">App or API</text>
+  <text x="215" y="1080" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Submits a job</text>
+  <rect x="390" y="1000" width="270" height="115" stroke-width="2.5" rx="18" fill="#f0f2f5" stroke="#8993a2" />
+  <text x="525" y="1045" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">PostgreSQL</text>
+  <text x="525" y="1080" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Keeps the job in a queue</text>
+  <rect x="700" y="1000" width="270" height="115" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="835" y="1045" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Background worker</text>
+  <text x="835" y="1080" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Picks up queued work</text>
+  <line x1="350.0" y1="1057.0" x2="385.0" y2="1057.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="660.0" y1="1057.0" x2="695.0" y2="1057.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="970.0" y1="1057.0" x2="1005.0" y2="1057.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1390.0" y1="1057.0" x2="1425.0" y2="1057.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><rect x="1010" y="1000" width="380" height="115" stroke-width="2.5" rx="18" fill="#fff1e2" stroke="#e29a46" />
+  <text x="1200" y="1042" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Luna or Sol + web search</text>
+  <text x="1200" y="1076" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Luna for routine work; Sol for research</text>
+  <rect x="1430" y="1000" width="270" height="115" stroke-width="2.5" rx="18" fill="#f0f2f5" stroke="#8993a2" />
+  <text x="1565" y="1045" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Saved result</text>
+  <text x="1565" y="1080" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Answer or report</text>
+  <rect x="50" y="1205" width="1700" height="285" fill="#ffffff" stroke="#d9e0e9" stroke-width="2" rx="26" />
+  <text x="85" y="1255" font-family="Arial, sans-serif" fill="#172033" font-size="26px" font-weight="700">3. Timers and reminders</text>
+  <text x="85" y="1284" font-family="Arial, sans-serif" fill="#526176" font-size="17px">Timer delivery has its own worker and Pi client.</text>
+
+  <rect x="80" y="1320" width="270" height="115" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="215" y="1365" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">API sets timer</text>
+  <text x="215" y="1400" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Creates reminder</text>
+  <rect x="390" y="1320" width="270" height="115" stroke-width="2.5" rx="18" fill="#f0f2f5" stroke="#8993a2" />
+  <text x="525" y="1365" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">PostgreSQL</text>
+  <text x="525" y="1400" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Stores timer</text>
+  <rect x="700" y="1320" width="270" height="115" stroke-width="2.5" rx="18" fill="#eeeaff" stroke="#8672d7" />
+  <text x="835" y="1365" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Timer worker</text>
+  <text x="835" y="1400" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Waits until due</text>
+  <line x1="350.0" y1="1377.0" x2="385.0" y2="1377.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="660.0" y1="1377.0" x2="695.0" y2="1377.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="970.0" y1="1377.0" x2="1005.0" y2="1377.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><line x1="1310.0" y1="1377.0" x2="1345.0" y2="1377.0" stroke="#526176" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /><rect x="1010" y="1320" width="300" height="115" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="1160" y="1365" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Pi timer client</text>
+  <text x="1160" y="1400" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Receives reminder event</text>
+  <rect x="1350" y="1320" width="350" height="115" stroke-width="2.5" rx="18" fill="#e8f4ff" stroke="#4594d4" />
+  <text x="1525" y="1365" text-anchor="middle" font-family="Arial, sans-serif" fill="#172033" font-size="21px" font-weight="700">Cube speaker</text>
+  <text x="1525" y="1400" text-anchor="middle" font-family="Arial, sans-serif" fill="#39465c" font-size="17px">Plays reminder</text>
+  <polygon points="390.0,320.0 400.0,327.0 390.0,334.0" fill="#526176" /><polygon points="715.0,320.0 725.0,327.0 715.0,334.0" fill="#526176" /><polygon points="1040.0,320.0 1050.0,327.0 1040.0,334.0" fill="#526176" /><polygon points="1365.0,320.0 1375.0,327.0 1365.0,334.0" fill="#526176" /><polygon points="568.0,475.0 582.0,475.0 575.0,485.0" fill="#526176" /><polygon points="1218.0,475.0 1232.0,475.0 1225.0,485.0" fill="#526176" /><polygon points="828.0,670.0 842.0,670.0 835.0,680.0" fill="#526176" /><polygon points="845.0,643.0 835.0,650.0 845.0,657.0" fill="#526176" /><polygon points="1080.0,730.0 1090.0,737.0 1080.0,744.0" fill="#526176" /><polygon points="375.0,1050.0 385.0,1057.0 375.0,1064.0" fill="#526176" /><polygon points="685.0,1050.0 695.0,1057.0 685.0,1064.0" fill="#526176" /><polygon points="995.0,1050.0 1005.0,1057.0 995.0,1064.0" fill="#526176" /><polygon points="1415.0,1050.0 1425.0,1057.0 1415.0,1064.0" fill="#526176" /><polygon points="375.0,1370.0 385.0,1377.0 375.0,1384.0" fill="#526176" /><polygon points="685.0,1370.0 695.0,1377.0 685.0,1384.0" fill="#526176" /><polygon points="995.0,1370.0 1005.0,1377.0 995.0,1384.0" fill="#526176" /><polygon points="1335.0,1370.0 1345.0,1377.0 1335.0,1384.0" fill="#526176" /></svg>

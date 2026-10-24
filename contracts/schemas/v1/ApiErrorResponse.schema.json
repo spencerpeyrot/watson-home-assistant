@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "ApiError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "AUTHENTICATION_REQUIRED",
+            "PERMISSION_DENIED",
+            "INVALID_REQUEST",
+            "UNSUPPORTED_SCHEMA_VERSION",
+            "RESOURCE_NOT_FOUND",
+            "RESOURCE_CONFLICT",
+            "IDEMPOTENCY_CONFLICT",
+            "STALE_CONTEXT_REVISION",
+            "APPROVAL_EXPIRED",
+            "APPROVAL_PAYLOAD_MISMATCH",
+            "ACTION_DENIED",
+            "RATE_LIMITED",
+            "BUDGET_EXCEEDED",
+            "DEPENDENCY_UNAVAILABLE",
+            "DEPENDENCY_TIMEOUT",
+            "DEVICE_OFFLINE",
+            "JOB_NOT_CANCELLABLE",
+            "INTERNAL_ERROR"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Details"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "title": "ApiError",
+      "type": "object"
+    }
+  },
+  "$id": "https://cube-assistant.invalid/contracts/v1/ApiErrorResponse.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "$ref": "#/$defs/ApiError"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_id": {
+      "format": "uuid",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trace_id",
+    "error"
+  ],
+  "title": "ApiErrorResponse",
+  "type": "object"
+}

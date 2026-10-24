@@ -1,0 +1,65 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/SessionResponse.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "conversation_id": {
+      "format": "uuid",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "idle_close_seconds": {
+      "minimum": 0,
+      "title": "Idle Close Seconds",
+      "type": "integer"
+    },
+    "max_session_seconds": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Session Seconds"
+    },
+    "opened_at": {
+      "format": "date-time",
+      "title": "Opened At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "connecting",
+        "starting",
+        "ready",
+        "closing",
+        "closed"
+      ],
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "conversation_id",
+    "state",
+    "opened_at",
+    "idle_close_seconds"
+  ],
+  "title": "SessionResponse",
+  "type": "object"
+}

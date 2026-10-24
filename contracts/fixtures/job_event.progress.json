@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "device_id": "cube-01",
+  "job_id": "00000000-0000-4000-8000-000000000005",
+  "event_id": "00000000-0000-4000-8000-000000000006",
+  "sequence": 1,
+  "kind": "progress",
+  "status": "running",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "session_id": "00000000-0000-4000-8000-000000000002",
+  "turn_id": "00000000-0000-4000-8000-000000000003",
+  "delegation_id": "live-delegation-42",
+  "trace_id": "00000000-0000-4000-8000-000000000004",
+  "parent_job_id": null,
+  "context_revision": 0,
+  "summary": "Checking current device state.",
+  "timestamp": "2026-10-06T12:00:00Z",
+  "approval_id": null,
+  "artifact_refs": [],
+  "sources": [],
+  "error_code": null,
+  "measured_usage": null
+}

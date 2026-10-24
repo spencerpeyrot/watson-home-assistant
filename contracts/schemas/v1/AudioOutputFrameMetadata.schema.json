@@ -1,0 +1,54 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/AudioOutputFrameMetadata.schema.json",
+  "additionalProperties": false,
+  "description": "PCM playback frame relayed from the gateway to the device.",
+  "properties": {
+    "channels": {
+      "const": 1,
+      "default": 1,
+      "title": "Channels",
+      "type": "integer"
+    },
+    "encoding": {
+      "const": "pcm_s16le",
+      "title": "Encoding",
+      "type": "string"
+    },
+    "payload_bytes": {
+      "maximum": 9600,
+      "minimum": 2,
+      "title": "Payload Bytes",
+      "type": "integer"
+    },
+    "sample_rate_hz": {
+      "const": 24000,
+      "default": 24000,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "session_id": {
+      "format": "uuid",
+      "title": "Session Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "sequence",
+    "encoding",
+    "payload_bytes"
+  ],
+  "title": "AudioOutputFrameMetadata",
+  "type": "object"
+}

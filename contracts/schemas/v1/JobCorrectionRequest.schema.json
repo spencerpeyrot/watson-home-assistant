@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "RecentTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "committed_at": {
+          "format": "date-time",
+          "title": "Committed At",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "turn_id": {
+          "format": "uuid",
+          "title": "Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "role",
+        "text",
+        "committed_at"
+      ],
+      "title": "RecentTurn",
+      "type": "object"
+    }
+  },
+  "$id": "https://cube-assistant.invalid/contracts/v1/JobCorrectionRequest.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "context_revision": {
+      "minimum": 1,
+      "title": "Context Revision",
+      "type": "integer"
+    },
+    "recent_turns": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RecentTurn"
+      },
+      "title": "Recent Turns",
+      "type": "array"
+    },
+    "request_text": {
+      "minLength": 1,
+      "title": "Request Text",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "context_revision",
+    "request_text"
+  ],
+  "title": "JobCorrectionRequest",
+  "type": "object"
+}

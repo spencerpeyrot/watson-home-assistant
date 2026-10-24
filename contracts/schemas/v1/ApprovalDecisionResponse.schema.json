@@ -1,0 +1,37 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/ApprovalDecisionResponse.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "approved",
+        "denied"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "approval_id",
+    "status",
+    "decided_at"
+  ],
+  "title": "ApprovalDecisionResponse",
+  "type": "object"
+}

@@ -1,0 +1,34 @@
+{
+  "$id": "https://cube-assistant.invalid/contracts/v1/SessionCreateRequest.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "conversation_id": {
+      "format": "uuid",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "locale": {
+      "minLength": 2,
+      "title": "Locale",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "timezone": {
+      "minLength": 1,
+      "title": "Timezone",
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "locale",
+    "timezone"
+  ],
+  "title": "SessionCreateRequest",
+  "type": "object"
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "action_id": "00000000-0000-4000-8000-000000000007",
+  "trace_id": "00000000-0000-4000-8000-000000000004",
+  "device_id": "cube-01",
+  "conversation_id": "00000000-0000-4000-8000-000000000001",
+  "session_id": "00000000-0000-4000-8000-000000000002",
+  "delegation_id": "live-delegation-42",
+  "job_id": "00000000-0000-4000-8000-000000000005",
+  "turn_id": "00000000-0000-4000-8000-000000000003",
+  "context_revision": 0,
+  "tool_name": "home_assistant.turn_on_light",
+  "payload": {
+    "entity_id": "light.living_room"
+  },
+  "issued_at": "2026-10-06T12:00:00Z",
+  "expires_at": "2026-10-06T12:00:10Z"
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=Watson Home Assistant database migrations (manual)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cube-assistant
+Group=cube-assistant
+WorkingDirectory=/opt/cube-assistant/current
+EnvironmentFile=/etc/cube-assistant/migrate.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/cube-assistant/current/.venv/bin/python -m service.migrate
+UMask=0077
+StateDirectory=cube-assistant
+StateDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
