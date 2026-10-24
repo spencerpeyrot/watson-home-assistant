@@ -1,8 +1,10 @@
 name: Python and contract validation
 
 on:
-  push:
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -21,7 +23,7 @@ jobs:
           enable-cache: true
       - run: uv python install "${{ matrix.python-version }}"
       - run: uv lock --check
-      - run: uv sync --locked --python "${{ matrix.python-version }}" --no-dev --group server
+      - run: uv sync --locked --python "${{ matrix.python-version }}" --no-dev --group server --group muse
       - run: uv run --locked --python "${{ matrix.python-version }}" python -m compileall -q contracts device service voice
       - run: uv run --locked --python "${{ matrix.python-version }}" python -m contracts.validate_fixtures
       - run: uv run --locked --python "${{ matrix.python-version }}" python -m unittest discover -s tests -v
